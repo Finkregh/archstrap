@@ -25,7 +25,10 @@
         * ext4 | btrfs+subvols
         * swap crypted
             * --> no suspend to disc?
-* encryption, modern crypto chacha20/ed25519 etc. non-NIST stuff
+* encryption, modern crypto
+    * LUKS2?
+    * PBKDF2-sha256 | argon2i | aes-xts-512b
+    * backup master-key-file?
 * systemd-boot
 * 
 * systemd as far as possible
@@ -48,6 +51,8 @@
         * login-screen
         * lock-screen
         * i3/gnome/kde/...? perhaps via pkg groups as already existing in arch
+    * sound
+    * multimedia (vlc, codecs?)
 * additional tools
     * gopass
     * browser+extensions
