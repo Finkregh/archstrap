@@ -31,7 +31,7 @@
         * ext4 | btrfs+subvols
         * swap crypted
             * --> no suspend to disc?
-        * ZFS might be not a good idea for a rolling release 
+        * ZFS might be not a good idea for a rolling release
         * > This situation sometimes locks down the normal rolling update process by unsatisfied dependencies because the new kernel version, proposed by update, is unsupported by ZFSonLinux.
             * ZFS is an late-extra-option, not the first thing we'll do
     * systemd-homed for only encrypted /home! (optional, later; first encrypt as much as possible)
@@ -61,7 +61,7 @@
     * ...
 * backup to usb or network
     * borg, restic, rsync, zfs
-        * borg 
+        * borg
             * https://git.intern.b1-systems.de/henze/my_local_borg_backup
 * user-stuff
     * ssh-keygen (rsa4096+ed25519)
@@ -100,7 +100,7 @@
         * pass access
         * firefox
             * container management
-            * 
+            *
     * tcpdump,strace,htop,glances,dstat,docker,iotop,gdb
     * arch-tools
         * yay, aurvote, config-management-after-update
@@ -119,3 +119,13 @@
 * mkosi
 
 ### usage
+# Actual 2 bash scripts. step1.sh needs to be started manually and step2.sh will be copied into the new system and will be started from step1.sh with arch-chroot
+# This is the first try with hard coded device name "vda" for kvm VMs
+* boot arch.iso
+* pacman -Sy git
+* clone this repo
+* start step1.sh
+    * create two partitions for /root and /boot -
+        * first 1G for /boot (or more or less)
+        * use left space for second partition - will be encrypted with /root and swap (actual 4G)
+* enjoy (actual keyboard layout is not de after booting - be carefully with special character in password for encryption)
