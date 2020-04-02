@@ -20,20 +20,20 @@ mkdir /mnt/boot
 mount /dev/vda1 /mnt/boot
 pacstrap /mnt linux linux-firmware base base-devel efibootmgr dialog intel-ucode lvm2 dhcpcd netctl vim ansible zsh git sudo
 while true; do
-	read -p 'Do you want to install software for notebooks (e.g. wifi): y/n ' yn
-	case $yn in
-		[Yy]* ) pacstrap /mnt wpa_supplicant;;
-		[Nn]* ) break;;
-                * ) echo "Please choose yes or no";;
-	esac
+    read -p 'Do you want to install software for notebooks (e.g. wifi): y/n ' yn
+    case $yn in
+    [Yy]*) pacstrap /mnt wpa_supplicant ;;
+    [Nn]*) break ;;
+    *) echo "Please choose yes or no" ;;
+    esac
 done
 
 while true; do
-	read -p 'Do you want to install i3 Destop environment?: y/n ' yn
-	case $yn in
-		[Yy]* ) pacstrap /mnt i3-vm xorg xorg-xinit i3blocks i3lock i3status;;
-		[Nn]* ) break;;
-	esac
+    read -p 'Do you want to install i3 Destop environment?: y/n ' yn
+    case $yn in
+    [Yy]*) pacstrap /mnt i3-vm xorg xorg-xinit i3blocks i3lock i3status ;;
+    [Nn]*) break ;;
+    esac
 done
 
 genfstab -pU /mnt | tee -a /mnt/etc/fstab
