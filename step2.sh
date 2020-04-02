@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 hwclock --systohc --utc
 

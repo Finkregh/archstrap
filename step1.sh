@@ -1,4 +1,4 @@
-!/bin/bash
+#!/usr/bin/env bash
 
 ## create UEFI partition
 cgdisk /dev/vda
