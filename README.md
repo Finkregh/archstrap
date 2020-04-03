@@ -118,6 +118,10 @@
     * features like ZFS
 * mkosi
 
+### chat
+
+![deltachat invite](deltachat-invite.jpg)
+
 ### usage
 # Actual 2 bash scripts. step1.sh needs to be started manually and step2.sh will be copied into the new system and will be started from step1.sh with arch-chroot
 # This is the first try with hard coded device name "vda" for kvm VMs
