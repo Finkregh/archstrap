@@ -31,7 +31,7 @@ done
 while true; do
     read -p 'Do you want to install i3 Destop environment?: y/n ' yn
     case $yn in
-    [Yy]*) pacstrap /mnt i3-vm xorg xorg-xinit i3blocks i3lock i3status ;;
+    [Yy]*) pacstrap /mnt i3-wm xorg xorg-xinit i3blocks i3lock i3status ;;
     [Nn]*) break ;;
     esac
 done
