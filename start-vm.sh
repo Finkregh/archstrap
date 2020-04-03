@@ -22,5 +22,5 @@ qemu-system-x86_64 -machine accel=kvm -smp 2 -m 4096 \
     -net nic -net bridge,br=virbr0 \
     -boot d -cdrom boot.iso \
     -drive if=pflash,format=raw,readonly,file=/usr/share/ovmf/x64/OVMF_CODE.fd \
-    -drive format=qcow2,file=qemu-hdd.qcow2 \
+    -drive if=virtio,format=qcow2,file=qemu-hdd.qcow2 \
     -object rng-random,filename=/dev/urandom,id=rng0 -device virtio-rng-pci,rng=rng0,id=rng-device0
