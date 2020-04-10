@@ -1,5 +1,7 @@
 # arch installer designdoc
 
+Manual mirror: https://github.com/Finkregh/archstrap
+
 
 ## non-goals (currently)
 * secure boot
