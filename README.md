@@ -123,6 +123,20 @@
 ![deltachat invite](deltachat-invite.jpg)
 
 ### usage
+
+General setup:
+* generate ISO with bootstrap script; should only be needed once
+  * `./create-iso.sh`
+  * otherwise use normal ISO and download script manually
+* boot ISO in VM/PC
+  * to start a qemu VM run `./start-vm.sh`
+* enable network in running ISO (should happen automagically with ethernet)
+* run `./get-bootstrap.sh` in the VM to download files
+  * this will fetch files from github, or via `./get-bootstrap.sh local` from the
+    IPv4 default gateway
+
+FIXME cleanup next steps
+
 # Actual 2 bash scripts. step1.sh needs to be started manually and step2.sh will be copied into the new system and will be started from step1.sh with arch-chroot
 # This is the first try with hard coded device name "vda" for kvm VMs
 * boot arch.iso
