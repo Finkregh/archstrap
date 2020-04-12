@@ -16,17 +16,17 @@ get_from_defgw() {
     wget "http://${gateway}:8080/bootstrap.sh"
 }
 
-case "$1" in
+case "${1-github}" in
 local)
     get_from_defgw
     ;;
 github)
     get_from_github
     ;;
-*)
-    echo "Neither 'github' nor 'local' chosen, using github"
-    get_from_github
-    ;;
+    #*)
+    #    echo "Neither 'github' nor 'local' chosen, using github"
+    #    get_from_github
+    #    ;;
 esac
 
 chmod +x bootstrap.sh
