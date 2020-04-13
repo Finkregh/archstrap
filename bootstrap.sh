@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 
 echo "Lets choose a destination disk. It will be used whole and __existing partitions will be removed___!"
 
@@ -57,7 +58,9 @@ cryptsetup open "${DEST_DISK_PATH}3" cryptoroot
 # FIXME swap
 #cryptsetup open "${DEST_DISK_PATH}4" cryptoswap
 
-# create root FS
+echo "[INFO] creating EFI FS"
+mkfs.vfat -F32 -n EFI "${DEST_DISK_PATH}2"
+echo "[INFO] creating root FS, mounting"
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
 mount /dev/mapper/cryptoroot "${DEST_CHROOT_DIR}"
 btrfs subvolume create "${DEST_CHROOT_DIR}/@"
@@ -65,11 +68,34 @@ btrfs subvolume create "${DEST_CHROOT_DIR}/@home"
 btrfs subvolume create "${DEST_CHROOT_DIR}/@var_log"
 btrfs subvolume create "${DEST_CHROOT_DIR}/@snapshots"
 # get btrfs subvol IDs
-_BTRFS_ID_ROOT=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @$" | awk 'print $2')
-_BTRFS_ID_HOME=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @/home$" | awk 'print $2')
-_BTRFS_ID_VARLOG=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @var_log" | awk 'print $2')
-_BTRFS_ID_SNAPSHOTS=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @snapshots" | awk 'print $2')
+_BTRFS_ID_ROOT=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @$" | awk '{ print $2 }')
+_BTRFS_ID_HOME=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @home$" | awk '{ print $2 }')
+_BTRFS_ID_VARLOG=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @var_log$" | awk '{print $2 }')
+_BTRFS_ID_SNAPSHOTS=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @snapshots$" | awk '{ print $2 }')
 umount /dev/mapper/cryptoroot
 mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_ROOT},subvol=/@,subvol=@ ${DEST_CHROOT_DIR}
+mkdir -p ${DEST_CHROOT_DIR}/home
+mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_HOME},subvol=/@home,subvol=@home ${DEST_CHROOT_DIR}/home
+mkdir -p ${DEST_CHROOT_DIR}/var/log
+mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_VARLOG},subvol=/@var_log,subvol=@var_log ${DEST_CHROOT_DIR}/var/log
+mkdir -p ${DEST_CHROOT_DIR}/.snapshots
+mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots ${DEST_CHROOT_DIR}/.snapshots
+echo "[INFO] mounting EFI"
+mkdir -p ${DEST_CHROOT_DIR}/efi
+mount "${DEST_DISK_PATH}1" ${DEST_CHROOT_DIR}/efi
 
+echo "[DEBUG] showing dir content, mount, df"
 ls -la ${DEST_CHROOT_DIR}
+mount
+df -h
+
+echo "[INFO] installing base system"
+pacstrap "${DEST_CHROOT_DIR}" linux linux-firmware base base-devel efibootmgr dialog intel-ucode lvm2 dhcpcd netctl vim ansible zsh git sudo wpa_supplicant btrfs-progs
+
+echo "[INFO] generating fstab"
+genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
+
+echo "[INFO] going into chroot"
+cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
+chmod +x ${DEST_CHROOT_DIR}/root/step2.sh
+arch-chroot ${DEST_CHROOT_DIR} /root/step2.sh

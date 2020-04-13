@@ -6,14 +6,16 @@ set -euo pipefail
 # (get as much from $source as possible)
 
 get_from_github() {
-    echo "Getting bootstrap script from https://github.com/Finkregh/archstrap"
+    echo "Getting scripts from https://github.com/Finkregh/archstrap"
     wget "https://raw.githubusercontent.com/Finkregh/archstrap/master/bootstrap.sh"
+    wget "https://raw.githubusercontent.com/Finkregh/archstrap/master/step2.sh"
 }
 get_from_defgw() {
-    echo "Getting bootstrap script from \$default_gateway:8080."
+    echo "Getting scripts from \$default_gateway:8080."
     echo "only using IPv4 for now... :(" # FIXME
     read -r _ _ gateway _ < <(ip route list match 0/0)
     wget "http://${gateway}:8080/bootstrap.sh"
+    wget "http://${gateway}:8080/step2.sh"
 }
 
 case "${1-github}" in
