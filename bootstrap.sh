@@ -82,7 +82,7 @@ mkdir -p ${DEST_CHROOT_DIR}/.snapshots
 mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots ${DEST_CHROOT_DIR}/.snapshots
 echo "[INFO] mounting EFI"
 mkdir -p ${DEST_CHROOT_DIR}/efi
-mount "${DEST_DISK_PATH}1" ${DEST_CHROOT_DIR}/efi
+mount "${DEST_DISK_PATH}2" ${DEST_CHROOT_DIR}/efi
 
 echo "[DEBUG] showing dir content, mount, df"
 ls -la ${DEST_CHROOT_DIR}
@@ -90,12 +90,18 @@ mount
 df -h
 
 echo "[INFO] installing base system"
-pacstrap "${DEST_CHROOT_DIR}" linux linux-firmware base base-devel efibootmgr dialog intel-ucode lvm2 dhcpcd netctl vim ansible zsh git sudo wpa_supplicant btrfs-progs
+pacstrap "${DEST_CHROOT_DIR}" linux linux-firmware base base-devel \
+    efibootmgr intel-ucode amd-ucode \
+    btrfs-progs \
+    dhcpcd netctl \
+    vim ansible zsh git sudo wpa_supplicant \
+    man-db man-pages \
+    dialog
 
 echo "[INFO] generating fstab"
 genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
 
 echo "[INFO] going into chroot"
+sed -i "s,__DEST_DISK_NAME__,${DEST_DISK_NAME},g" "${DEST_CHROOT_DIR}/root/step2.sh"
 cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
-chmod +x ${DEST_CHROOT_DIR}/root/step2.sh
-arch-chroot ${DEST_CHROOT_DIR} /root/step2.sh
+systemd-nspawn -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
