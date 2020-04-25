@@ -15,7 +15,7 @@ fi
 declare -a _DISK_CHOOSE_OPTIONS
 readarray _DISKS < <(lsblk -o TYPE,SIZE,PATH --noheadings | grep disk)
 for _disk in "${_DISKS[@]}"; do
-    read -r _ _disk_size _disk_path < <(echo "${_disk}")
+    read -r _ _disk_size _disk_path <<<"${_disk}"
     _DISK_CHOOSE_OPTIONS+=("${_disk_path}" "Size: ${_disk_size}")
 done
 _DESTINATION_DISK=$(dialog --clear \
