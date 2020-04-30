@@ -6,11 +6,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: shellcheck
-        uses: reviewdog/action-shellcheck@v1
+      - name: shellcheck-github-pr-check
+        uses: ./
         with:
           github_token: ${{ secrets.github_token }}
-          reporter: github-pr-review # Change reporter.
-          path: "." # Optional.
-          pattern: "*.sh" # Optional.
-          exclude: "./.git/*" # Optional.
+      - name: shellcheck-github-check
+        uses: ./
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-check
+          level: warning
+          pattern: '*.sh'
+          path: '.'
+          exclude: './testdata/*'
+      - name: shellcheck-github-pr-review
+        uses: ./
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          pattern: '*.sh'
+          path: '.'
+          exclude: './testdata/*'
