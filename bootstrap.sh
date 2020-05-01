@@ -104,4 +104,5 @@ genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
 echo "[INFO] going into chroot"
 sed -i "s,__DEST_DISK_NAME__,${DEST_DISK_NAME},g" "${DEST_CHROOT_DIR}/root/step2.sh"
 cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
-systemd-nspawn -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
+# shellcheck disable=SC2154
+systemd-nspawn -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
