@@ -48,7 +48,7 @@ linux /vmlinuz-linux
 initrd /intel-ucode.img
 initrd /amd-ucode.img
 initrd /initramfs-linux.img
-options rd.luks.name=$(blkid -s UUID -o value /dev/${DEST_DISK_NAME}3)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
+options rd.luks.name=$(blkid -s UUID -o value /dev/${DEST_DISK_NAME}2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
 " >/boot/loader/entries/arch.conf
 
 systemctl enable dhcpcd.service
