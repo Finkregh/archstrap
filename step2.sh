@@ -35,21 +35,21 @@ sed -i '/HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)/c\
 mkinitcpio -P
 
 echo "[INFO] installing bootloader"
-mkdir -p /efi/loader
-mkdir -p /efi/loader/entries
-bootctl --path=/efi install
+mkdir -p /boot/loader
+mkdir -p /boot/loader/entries
+bootctl --path=/boot install
 
 echo "default  arch.conf
 timeout  4
 console-mode max
-editor   no" >/efi/loader/loader.conf
+editor   no" >/boot/loader/loader.conf
 echo "title Arch Linux
 linux /vmlinuz-linux
 initrd /intel-ucode.img
 initrd /amd-ucode.img
 initrd /initramfs-linux.img
 options rd.luks.name=$(blkid -s UUID -o value /dev/${DEST_DISK_NAME}3)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
-" >/efi/loader/entries/arch.conf
+" >/boot/loader/entries/arch.conf
 
 systemctl enable dhcpcd.service
 

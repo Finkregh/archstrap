@@ -81,8 +81,8 @@ mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,
 mkdir -p ${DEST_CHROOT_DIR}/.snapshots
 mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots ${DEST_CHROOT_DIR}/.snapshots
 echo "[INFO] mounting EFI"
-mkdir -p ${DEST_CHROOT_DIR}/efi
-mount "${DEST_DISK_PATH}2" ${DEST_CHROOT_DIR}/efi
+mkdir -p ${DEST_CHROOT_DIR}/boot
+mount "${DEST_DISK_PATH}2" ${DEST_CHROOT_DIR}/boot
 
 echo "[DEBUG] showing dir content, mount, df"
 ls -la ${DEST_CHROOT_DIR}
