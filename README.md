@@ -5,13 +5,13 @@
     * needed for secure UEFI
 
 ## goals
-* public release at some point
+* ✓ public release at some point
 * as secure as easily reachable, can be made more secure in later versions (e.g. add secure boot)
 * get a basic version running as soon as possible, bloat will happen along the way
 
 ### development
 * easy testing / usage
-    * should be able to start a VM which does start the installer with minimal manual intervention
+    * ✓ should be able to start a VM which does start the installer with minimal manual intervention
     * should be able to start a laptop via netboot/usb archlinux default image, curl $something
     * mkosi has everything we want https://github.com/systemd/mkosi
 * we start simple with a bash script, may switch to bash-then-(ansible|...) if things get complicated
@@ -24,17 +24,17 @@
         * shfmt
 
 ### basic features
-* boot via UEFI, it is 2020
+* ✓boot via UEFI, it is 2020
 * partitioning
     * efi, crypto|zfs-with-native-crypto
-        * ext4 | btrfs+subvols
+        * ext4 | ✓ btrfs+subvols
         * swap crypted
             * --> no suspend to disc?
         * ZFS might be not a good idea for a rolling release
         * > This situation sometimes locks down the normal rolling update process by unsatisfied dependencies because the new kernel version, proposed by update, is unsupported by ZFSonLinux.
             * ZFS is an late-extra-option, not the first thing we'll do
     * systemd-homed for only encrypted /home! (optional, later; first encrypt as much as possible)
-* encryption, modern crypto
+* ✓ encryption, modern crypto
     * ~~shred/randomize before encryption - needed in times of non-rotating storage?~~
         * will wear down the storage
     * LUKS2?
@@ -48,7 +48,7 @@
         * print?
             * https://wiki.archlinux.org/index.php/Paperkey ?
         * if we do this we need a recovery procedure
-* systemd-boot
+* ✓ systemd-boot
 * TODO: work through https://wiki.archlinux.org/index.php/General_recommendations
 * systemd as far as possible
     * systemd-boot (grub if we use zfs? (can grub boot directly from ZFS?-yes,dont know if /w encryption; otherwise separate encrypted /boot))
@@ -112,8 +112,8 @@
 #### braindump/ideas
 * netboot ala netboot.xyz ?
     * gute idee (max)
-* build image, e.g. via kiwi to include
-    * installer-script
+* ✓ (arch-installiso) build image, e.g. via kiwi to include
+    * ✓ installer-script
     * features like ZFS
 * mkosi
 
@@ -128,7 +128,7 @@ General setup:
   * `./start-proxy-container.sh`
   * you can now use `export http_proxy='http://127.0.0.1:3128/'` to use the
     proxy; this is very useful inside the VM; there you can use the
-    default-gateways' IPv4
+    default-gatew✓ays' IPv4
 * generate ISO with bootstrap script; should only be needed once
   * `./create-iso.sh`
   * otherwise use normal ISO and download script manually
