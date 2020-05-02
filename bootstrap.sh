@@ -26,7 +26,6 @@ _DESTINATION_DISK=$(dialog --clear \
     2>&1 >/dev/tty)
 
 declare -r DEST_DISK_PATH="${_DESTINATION_DISK}"
-declare -r DEST_DISK_NAME="$(basename ${_DESTINATION_DISK})"
 #declare -r PACKAGELIST="sudo,popularity-contest"
 declare -r DEST_CHROOT_DIR="/mnt/tmp"
 
@@ -54,6 +53,7 @@ cryptsetup --iter-time 5000 luksFormat "${DEST_DISK_PATH}2"
 #cryptsetup open --type plain <device> <dmname>
 
 # open crypto container
+echo "Enter above passphrase again to open cryptoroot"
 cryptsetup open "${DEST_DISK_PATH}2" cryptoroot
 # FIXME swap
 #cryptsetup open "${DEST_DISK_PATH}3" cryptoswap
@@ -103,9 +103,24 @@ genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
 
 echo "[INFO] going into chroot"
 cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
-sed -i "s,__DEST_DISK_NAME__,${DEST_DISK_NAME},g" "${DEST_CHROOT_DIR}/root/step2.sh"
 # shellcheck disable=SC2154
-systemd-nspawn -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
+systemd-nspawn --private-users=no -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
+echo "[INFO] installing bootloader, configs"
+arch-chroot "${DEST_CHROOT_DIR}" bootctl --path=/boot install
+echo "default  arch.conf
+timeout  4
+console-mode max
+editor   no" >${DEST_CHROOT_DIR}/boot/loader/loader.conf
+echo "title Arch Linux
+linux /vmlinuz-linux
+initrd /intel-ucode.img
+initrd /amd-ucode.img
+initrd /initramfs-linux.img
+options rd.luks.name=$(blkid -s UUID -o value ${DEST_DISK_PATH}2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
+" >${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf
+
 echo "FINISHED!"
 echo "If you would like to chroot into the system please run this:"
-echo "systemd-nspawn -E \"http_proxy=${http_proxy:-}\" -D \"${DEST_CHROOT_DIR}\" /bin/bash"
+echo "systemd-nspawn --private-users=no -E \"http_proxy=${http_proxy:-}\" -D \"${DEST_CHROOT_DIR}\" /bin/bash"
+echo "or"
+echo "arch-chroot \"${DEST_CHROOT_DIR}\""

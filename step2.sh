@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# this will be replaced from bootstrap.sh
-declare -rx DEST_DISK_NAME="__DEST_DISK_NAME_"
-
 echo "[INFO] set clock to UTC"
 timedatectl set-local-rtc 0
 timedatectl set-ntp true
@@ -34,22 +31,9 @@ echo "[INFO] generating mkinitcpio"
 sed -i '/HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)/c\HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)' /etc/mkinitcpio.conf
 mkinitcpio -P
 
-echo "[INFO] installing bootloader"
+echo "[INFO] creating bootloader dirs"
 mkdir -p /boot/loader
 mkdir -p /boot/loader/entries
-bootctl --path=/boot install
-
-echo "default  arch.conf
-timeout  4
-console-mode max
-editor   no" >/boot/loader/loader.conf
-echo "title Arch Linux
-linux /vmlinuz-linux
-initrd /intel-ucode.img
-initrd /amd-ucode.img
-initrd /initramfs-linux.img
-options rd.luks.name=$(blkid -s UUID -o value /dev/${DEST_DISK_NAME}2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
-" >/boot/loader/entries/arch.conf
 
 systemctl enable dhcpcd.service
 
