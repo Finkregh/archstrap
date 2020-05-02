@@ -31,6 +31,13 @@ github)
     #    ;;
 esac
 
+read -p "use proxy in the next steps (default-GW, not recommended in non-devel-environment)? (yN) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read -r _ _ gateway _ < <(ip route list match 0/0)
+    export http_proxy="http://${gateway}:3128/"
+fi
+
 chmod +x bootstrap.sh
 
 read -p "Run bootstrap.sh? (y/N) " -n 1 -r

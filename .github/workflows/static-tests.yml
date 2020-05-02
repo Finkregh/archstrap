@@ -16,4 +16,4 @@ jobs:
     - name: shfmt
       uses: bltavares/actions/shfmt@master
       env:
-        SHFMT_ARGS: -d
+        SHFMT_ARGS: -d -i 2

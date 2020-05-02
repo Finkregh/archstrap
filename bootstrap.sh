@@ -26,7 +26,6 @@ _DESTINATION_DISK=$(dialog --clear \
     2>&1 >/dev/tty)
 
 declare -r DEST_DISK_PATH="${_DESTINATION_DISK}"
-declare -r DEST_DISK_NAME="$(basename ${_DESTINATION_DISK})"
 #declare -r PACKAGELIST="sudo,popularity-contest"
 declare -r DEST_CHROOT_DIR="/mnt/tmp"
 
@@ -36,11 +35,11 @@ mkdir -p "${DEST_CHROOT_DIR}"
 # clear partition table
 sgdisk --zap-all "${DEST_DISK_PATH}"
 # UEFI - could also be 512M, discuss
-sgdisk -n2:1M:+1G -t2:EF00 -c 2:efi "${DEST_DISK_PATH}"
+sgdisk -n1:1M:+1G -t1:EF00 -c 1:efi "${DEST_DISK_PATH}"
 # root (minus 4 GiB for swap
-sgdisk -n3:0:-4G -t3:8309 -c 3:crypt-root "${DEST_DISK_PATH}"
+sgdisk -n2:0:-4G -t2:8309 -c 2:crypt-root "${DEST_DISK_PATH}"
 # swap
-sgdisk -n4:0:0 -t4:8309 -c 4:crypt-swap "${DEST_DISK_PATH}"
+sgdisk -n3:0:0 -t3:8309 -c 3:crypt-swap "${DEST_DISK_PATH}"
 # update partition table
 partprobe
 sleep 5
@@ -48,18 +47,19 @@ sleep 5
 # setup disk encryption
 echo "Setting up disk encryption, please enter a proper passphrase next."
 # root, use longer time to do PBKDF2 passphrase processing
-cryptsetup --iter-time 5000 luksFormat "${DEST_DISK_PATH}3"
+cryptsetup --iter-time 5000 luksFormat "${DEST_DISK_PATH}2"
 # swap
 # FIXME setup key file in created FS later... of use $something more simple
 #cryptsetup open --type plain <device> <dmname>
 
 # open crypto container
-cryptsetup open "${DEST_DISK_PATH}3" cryptoroot
+echo "Enter above passphrase again to open cryptoroot"
+cryptsetup open "${DEST_DISK_PATH}2" cryptoroot
 # FIXME swap
-#cryptsetup open "${DEST_DISK_PATH}4" cryptoswap
+#cryptsetup open "${DEST_DISK_PATH}3" cryptoswap
 
 echo "[INFO] creating EFI FS"
-mkfs.vfat -F32 -n EFI "${DEST_DISK_PATH}2"
+mkfs.vfat -F32 -n EFI "${DEST_DISK_PATH}1"
 echo "[INFO] creating root FS, mounting"
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
 mount /dev/mapper/cryptoroot "${DEST_CHROOT_DIR}"
@@ -81,8 +81,8 @@ mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,
 mkdir -p ${DEST_CHROOT_DIR}/.snapshots
 mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots ${DEST_CHROOT_DIR}/.snapshots
 echo "[INFO] mounting EFI"
-mkdir -p ${DEST_CHROOT_DIR}/efi
-mount "${DEST_DISK_PATH}2" ${DEST_CHROOT_DIR}/efi
+mkdir -p ${DEST_CHROOT_DIR}/boot
+mount "${DEST_DISK_PATH}1" ${DEST_CHROOT_DIR}/boot
 
 echo "[DEBUG] showing dir content, mount, df"
 ls -la ${DEST_CHROOT_DIR}
@@ -102,6 +102,25 @@ echo "[INFO] generating fstab"
 genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
 
 echo "[INFO] going into chroot"
-sed -i "s,__DEST_DISK_NAME__,${DEST_DISK_NAME},g" "${DEST_CHROOT_DIR}/root/step2.sh"
 cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
-systemd-nspawn -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
+# shellcheck disable=SC2154
+systemd-nspawn --private-users=no -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
+echo "[INFO] installing bootloader, configs"
+arch-chroot "${DEST_CHROOT_DIR}" bootctl --path=/boot install
+echo "default  arch.conf
+timeout  4
+console-mode max
+editor   no" >${DEST_CHROOT_DIR}/boot/loader/loader.conf
+echo "title Arch Linux
+linux /vmlinuz-linux
+initrd /intel-ucode.img
+initrd /amd-ucode.img
+initrd /initramfs-linux.img
+options rd.luks.name=$(blkid -s UUID -o value ${DEST_DISK_PATH}2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
+" >${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf
+
+echo "FINISHED!"
+echo "If you would like to chroot into the system please run this:"
+echo "systemd-nspawn --private-users=no -E \"http_proxy=${http_proxy:-}\" -D \"${DEST_CHROOT_DIR}\" /bin/bash"
+echo "or"
+echo "arch-chroot \"${DEST_CHROOT_DIR}\""

@@ -8,8 +8,8 @@ if [ -e archlive/out/arch_bootstrapped-0.1-x86_64.iso ]; then
     read -p "archlive/out/arch_bootstrapped-0.1-x86_64.iso already exists, remove? (y/N)" -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -v archlive/work/build.make_*
-        rm -rf archlive/out
+        sudo rm -v archlive/work/build.make_*
+        sudo rm -rf archlive/out
     else
         echo "ok, exiting"
         exit 0
