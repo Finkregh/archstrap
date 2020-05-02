@@ -1,8 +1,5 @@
 # arch installer designdoc
 
-Manual mirror: https://github.com/Finkregh/archstrap
-
-
 ## non-goals (currently)
 * secure boot
     * needed for secure UEFI
@@ -141,16 +138,3 @@ General setup:
 * run `./get-bootstrap.sh` in the VM to download files
   * this will fetch files from github, or via `./get-bootstrap.sh local` from the
     IPv4 default gateway
-
-FIXME cleanup next steps
-
-# Actual 2 bash scripts. step1.sh needs to be started manually and step2.sh will be copied into the new system and will be started from step1.sh with arch-chroot
-# This is the first try with hard coded device name "vda" for kvm VMs
-* boot arch.iso
-* pacman -Sy git
-* clone this repo
-* start step1.sh
-    * create two partitions for /root and /boot -
-        * first 1G for /boot (or more or less)
-        * use left space for second partition - will be encrypted with /root and swap (actual 4G)
-* enjoy (actual keyboard layout is not de after booting - be carefully with special character in password for encryption)
