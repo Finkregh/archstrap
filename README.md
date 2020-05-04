@@ -124,11 +124,6 @@
 ### usage
 
 General setup:
-* optional: start caching proxy to cache packages
-  * `./start-proxy-container.sh`
-  * you can now use `export http_proxy='http://127.0.0.1:3128/'` to use the
-    proxy; this is very useful inside the VM; there you can use the
-    default-gatew✓ays' IPv4
 * generate ISO with bootstrap script; should only be needed once
   * `./create-iso.sh`
   * otherwise use normal ISO and download script manually
