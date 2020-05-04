@@ -7,7 +7,7 @@ echo "Lets choose a destination disk. It will be used whole and __existing parti
 read -p "Do you want to continue? (y/n)" -n 1 -r
 echo # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
+    [[ "$0" == "${BASH_SOURCE[0]}" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
 
 #read -r _disk_name _ _disk_size _disk_path < <(lsblk -o NAME,TYPE,SIZE,PATH --noheadings | grep disk)
@@ -73,19 +73,19 @@ _BTRFS_ID_HOME=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @home$" | 
 _BTRFS_ID_VARLOG=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @var_log$" | awk '{print $2 }')
 _BTRFS_ID_SNAPSHOTS=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @snapshots$" | awk '{ print $2 }')
 umount /dev/mapper/cryptoroot
-mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_ROOT},subvol=/@,subvol=@ ${DEST_CHROOT_DIR}
-mkdir -p ${DEST_CHROOT_DIR}/home
-mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_HOME},subvol=/@home,subvol=@home ${DEST_CHROOT_DIR}/home
-mkdir -p ${DEST_CHROOT_DIR}/var/log
-mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_VARLOG},subvol=/@var_log,subvol=@var_log ${DEST_CHROOT_DIR}/var/log
-mkdir -p ${DEST_CHROOT_DIR}/.snapshots
-mount /dev/mapper/cryptoroot -o rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots ${DEST_CHROOT_DIR}/.snapshots
+mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_ROOT},subvol=/@,subvol=@" "${DEST_CHROOT_DIR}"
+mkdir -p "${DEST_CHROOT_DIR}/home"
+mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_HOME},subvol=/@home,subvol=@home" "${DEST_CHROOT_DIR}/home"
+mkdir -p "${DEST_CHROOT_DIR}/var/log"
+mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_VARLOG},subvol=/@var_log,subvol=@var_log" "${DEST_CHROOT_DIR}/var/log"
+mkdir -p "${DEST_CHROOT_DIR}/.snapshots"
+mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots" "${DEST_CHROOT_DIR}/.snapshots"
 echo "[INFO] mounting EFI"
-mkdir -p ${DEST_CHROOT_DIR}/boot
-mount "${DEST_DISK_PATH}1" ${DEST_CHROOT_DIR}/boot
+mkdir -p "${DEST_CHROOT_DIR}/boot"
+mount "${DEST_DISK_PATH}1" "${DEST_CHROOT_DIR}/boot"
 
 echo "[DEBUG] showing dir content, mount, df"
-ls -la ${DEST_CHROOT_DIR}
+ls -la "${DEST_CHROOT_DIR}"
 mount
 df -h
 
@@ -102,7 +102,7 @@ echo "[INFO] generating fstab"
 genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
 
 echo "[INFO] going into chroot"
-cp ./step2.sh ${DEST_CHROOT_DIR}/root/step2.sh
+cp ./step2.sh "${DEST_CHROOT_DIR}/root/step2.sh"
 # shellcheck disable=SC2154
 systemd-nspawn --private-users=no -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
 echo "[INFO] installing bootloader, configs"
@@ -110,14 +110,14 @@ arch-chroot "${DEST_CHROOT_DIR}" bootctl --path=/boot install
 echo "default  arch.conf
 timeout  4
 console-mode max
-editor   no" >${DEST_CHROOT_DIR}/boot/loader/loader.conf
+editor   no" >"${DEST_CHROOT_DIR}/boot/loader/loader.conf"
 echo "title Arch Linux
 linux /vmlinuz-linux
 initrd /intel-ucode.img
 initrd /amd-ucode.img
 initrd /initramfs-linux.img
-options rd.luks.name=$(blkid -s UUID -o value ${DEST_DISK_PATH}2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
-" >${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf
+options rd.luks.name=$(blkid -s UUID -o value "${DEST_DISK_PATH}"2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
+" >"${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf"
 
 echo "FINISHED!"
 echo "If you would like to chroot into the system please run this:"
