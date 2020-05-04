@@ -23,12 +23,16 @@ while read -r _disk_type _disk_size _disk_path; do
     fi
 done < <(lsblk -o TYPE,SIZE,PATH --noheadings)
 
+# open an additional file descriptor (fd3) to allow usage of dialog inside the subshell and redirecting its output
+exec 3>&1
 _DESTINATION_DISK=$(dialog --clear \
     --backtitle "Choose a disk to write to" \
     --title "Choose a disk to write to" \
     --menu "Available disks" 15 40 4 \
     "${_DISK_CHOOSE_OPTIONS[@]}" \
-    2>&1 >/dev/tty)
+    2>&1 1>&3)
+# close the additional fd
+exec 3>&-
 
 declare -r DEST_DISK_PATH="${_DESTINATION_DISK}"
 #declare -r PACKAGELIST="sudo,popularity-contest"
