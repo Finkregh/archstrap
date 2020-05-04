@@ -3,15 +3,18 @@
 set -euo pipefail
 set -x
 
-echo "Lets choose a destination disk. It will be used whole and __existing partitions will be removed___!"
-
-read -p "Do you want to continue? (y/n)" -n 1 -r
-echo # (optional) move to a new line
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+# shows a dialog (duh) asking for confirmation. It contains a red \Z1 bold \Zb warning. The warning is set back at \Zn.
+# the size is determined automatically (0 0)
+dialog --clear \
+    --colors \
+    --yesno \
+    --defaultno \
+    'Lets choose a destination disk. It will be used whole!\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
+    0 0
+declare -i _dialog_return="$?"
+if ((_dialog_return != 0)); then
     [[ "$0" == "${BASH_SOURCE[0]}" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
-
-#read -r _disk_name _ _disk_size _disk_path < <(lsblk -o NAME,TYPE,SIZE,PATH --noheadings | grep disk)
 
 declare -a _DISK_CHOOSE_OPTIONS=()
 while read -r _disk_type _disk_size _disk_path; do
