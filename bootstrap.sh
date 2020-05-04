@@ -13,12 +13,13 @@ fi
 
 #read -r _disk_name _ _disk_size _disk_path < <(lsblk -o NAME,TYPE,SIZE,PATH --noheadings | grep disk)
 
-declare -a _DISK_CHOOSE_OPTIONS
-readarray _DISKS < <(lsblk -o TYPE,SIZE,PATH --noheadings | grep disk)
-for _disk in "${_DISKS[@]}"; do
-    read -r _ _disk_size _disk_path <<<"${_disk}"
-    _DISK_CHOOSE_OPTIONS+=("${_disk_path}" "Size: ${_disk_size}")
-done
+declare -a _DISK_CHOOSE_OPTIONS=()
+while read -r _disk_type _disk_size _disk_path; do
+    if [[ "$_disk_type" == 'disk' ]]; then
+        _DISK_CHOOSE_OPTIONS+=("$_disk_path" "Size: $_disk_size")
+    fi
+done < <(lsblk -o TYPE,SIZE,PATH --noheadings)
+
 _DESTINATION_DISK=$(dialog --clear \
     --backtitle "Choose a disk to write to" \
     --title "Choose a disk to write to" \
