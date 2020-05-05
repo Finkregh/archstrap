@@ -9,7 +9,7 @@ dialog --clear \
     --colors \
     --yesno \
     --defaultno \
-    'Lets choose a destination disk. It will be used whole!\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
+    'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
     0 0
 declare -i _dialog_return="$?"
 if ((_dialog_return != 0)); then
