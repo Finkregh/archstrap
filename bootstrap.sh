@@ -25,7 +25,7 @@ done < <(lsblk -o TYPE,SIZE,PATH --noheadings)
 
 # open an additional file descriptor (fd3) to allow usage of dialog inside the subshell and redirecting its output
 exec 3>&1
-_DESTINATION_DISK=$(dialog --clear \
+DEST_DISK_PATH=$(dialog --clear \
     --backtitle "Choose a disk to write to" \
     --title "Choose a disk to write to" \
     --menu "Available disks" 15 40 4 \
@@ -34,8 +34,7 @@ _DESTINATION_DISK=$(dialog --clear \
 # close the additional fd
 exec 3>&-
 
-declare -r DEST_DISK_PATH="${_DESTINATION_DISK}"
-#declare -r PACKAGELIST="sudo,popularity-contest"
+declare -r DEST_DISK_PATH
 declare -r DEST_CHROOT_DIR="/mnt/tmp"
 
 mkdir -p "${DEST_CHROOT_DIR}"
