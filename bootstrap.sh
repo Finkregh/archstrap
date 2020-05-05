@@ -42,12 +42,12 @@ mkdir -p "${DEST_CHROOT_DIR}"
 # partition disk
 # clear partition table
 sgdisk --zap-all "${DEST_DISK_PATH}"
-# UEFI - could also be 512M, discuss
-sgdisk -n1:1M:+1G -t1:EF00 -c 1:efi "${DEST_DISK_PATH}"
-# root (minus 4 GiB for swap
-sgdisk -n2:0:-4G -t2:8309 -c 2:crypt-root "${DEST_DISK_PATH}"
-# swap
-sgdisk -n3:0:0 -t3:8309 -c 3:crypt-swap "${DEST_DISK_PATH}"
+# use relativ partition numbers, not hardcoded ones
+# use relativ partition sizes
+# ESP uses 1GiB, open for discussion
+sgdisk -n0:0:+1G -t0:C12A7328-F81F-11D2-BA4B-00A0C93EC93B -c 0:efi "${DEST_DISK_PATH}"
+# root is everything else
+sgdisk -n0:0:0 -t0:CA7D7CCB-63ED-4C53-861C-1742536059CC -c 0:crypt-root "${DEST_DISK_PATH}"
 # update partition table
 partprobe
 sleep 5
@@ -56,15 +56,10 @@ sleep 5
 echo "Setting up disk encryption, please enter a proper passphrase next."
 # root, use longer time to do PBKDF2 passphrase processing
 cryptsetup --iter-time 5000 luksFormat "${DEST_DISK_PATH}2"
-# swap
-# FIXME setup key file in created FS later... of use $something more simple
-#cryptsetup open --type plain <device> <dmname>
 
 # open crypto container
 echo "Enter above passphrase again to open cryptoroot"
 cryptsetup open "${DEST_DISK_PATH}2" cryptoroot
-# FIXME swap
-#cryptsetup open "${DEST_DISK_PATH}3" cryptoswap
 
 echo "[INFO] creating EFI FS"
 mkfs.vfat -F32 -n EFI "${DEST_DISK_PATH}1"
