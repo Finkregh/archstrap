@@ -68,13 +68,15 @@ until [[ "$_passwords_are_the_same" == 'true' ]]; do
 	_CRYPT_ROOT_PASSWORD=$(dialog \
 		--clear \
 		--passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase." \
+		--insecure \
 		0 0 \
 		2>&1 1>&3)
 	exec 3>&-
 	exec 3>&1
 	_CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
 		--clear \
-		--passwordbox "Please repeat your passphrase."\
+		--passwordbox "Please repeat your passphrase." \
+		--insecure \
 		0 0 \
 		2>&1 1>&3)
 	exec 3>&-
