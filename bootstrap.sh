@@ -52,17 +52,21 @@ sgdisk -n0:0:0 -t0:CA7D7CCB-63ED-4C53-861C-1742536059CC -c 0:crypt-root "${DEST_
 partprobe
 sleep 5
 
+# use the fancy names from the sgdisk -c part
+declare -r DEST_EFI_PART='/dev/disk/by-partlabel/efi'
+declare -r DEST_ROOT_PART='/dev/disk/by-partlabel/crypt-root'
+
 # setup disk encryption
 echo "Setting up disk encryption, please enter a proper passphrase next."
 # root, use longer time to do PBKDF2 passphrase processing
-cryptsetup --iter-time 5000 luksFormat "${DEST_DISK_PATH}2"
+cryptsetup --iter-time 5000 luksFormat "$DEST_ROOT_PART"
 
 # open crypto container
 echo "Enter above passphrase again to open cryptoroot"
-cryptsetup open "${DEST_DISK_PATH}2" cryptoroot
+cryptsetup open "$DEST_ROOT_PART" cryptoroot
 
 echo "[INFO] creating EFI FS"
-mkfs.vfat -F32 -n EFI "${DEST_DISK_PATH}1"
+mkfs.vfat -F32 -n EFI "$DEST_EFI_PART"
 echo "[INFO] creating root FS, mounting"
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
 mount /dev/mapper/cryptoroot "${DEST_CHROOT_DIR}"
@@ -85,7 +89,7 @@ mkdir -p "${DEST_CHROOT_DIR}/.snapshots"
 mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots" "${DEST_CHROOT_DIR}/.snapshots"
 echo "[INFO] mounting EFI"
 mkdir -p "${DEST_CHROOT_DIR}/boot"
-mount "${DEST_DISK_PATH}1" "${DEST_CHROOT_DIR}/boot"
+mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
 
 echo "[DEBUG] showing dir content, mount, df"
 ls -la "${DEST_CHROOT_DIR}"
