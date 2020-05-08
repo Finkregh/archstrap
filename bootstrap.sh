@@ -199,33 +199,124 @@ packages_to_install+=('iwd') # better replacement for wpa_supplicant
 packages_to_install+=('sudo' 'polkit')
 packages_to_install+=('vim' 'zsh' 'git' 'man-db' 'man-pages')
 packages_to_install+=('cockpit' 'cockpit-podman' 'cockpit-machines') # cockpit is a fancy web base for system administration
-pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
-} | dialog --clear --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
+pacstrap -c "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
+} | dialog --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
 
 
-echo "[INFO] generating fstab"
-genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
+# 6.: create fstab
+{
+for subvol in '@home' '@var_log' '@snapshots' '@swap'; do
+    btrfs_mount_point="${subvol#@}"
+    btrfs_mount_point="${btrfs_mount_point/_///}"
+    btrfs_mount_options='noatime,compress=lzo,ssd,discard,commit=120,noauto,x-systemd.automount,x-systemd.idle-timeout=10'
+    printf '/dev/mapper/cryptoroot %s btrfs %s,subvol=%s 0 0\n' "$btrfs_mount_point" "$btrfs_mount_options" "$subvol"
+    printf '/swap/file none swap defaults 0 0\n'
+done
+} | tee "${DEST_CHROOT_DIR}/etc/fstab" | dialog --progressbox "Creating /etc/fstab" 0 0
 
-echo "[INFO] going into chroot"
-cp ./step2.sh "${DEST_CHROOT_DIR}/root/step2.sh"
-# shellcheck disable=SC2154
-systemd-nspawn --private-users=no -E "http_proxy=${http_proxy:-}" -D "${DEST_CHROOT_DIR}" /bin/bash -x /root/step2.sh
-echo "[INFO] installing bootloader, configs"
-arch-chroot "${DEST_CHROOT_DIR}" bootctl --path=/boot install
-echo "default  arch.conf
-timeout  4
-console-mode max
-editor   no" >"${DEST_CHROOT_DIR}/boot/loader/loader.conf"
-echo "title Arch Linux
-linux /vmlinuz-linux
-initrd /intel-ucode.img
-initrd /amd-ucode.img
-initrd /initramfs-linux.img
-options rd.luks.name=$(blkid -s UUID -o value "${DEST_DISK_PATH}"2)=cryptoroot rd.luks.options=discard  root=UUID=$(blkid -s UUID -o value /dev/mapper/cryptoroot) rootflags=subvol=@ rw
-" >"${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf"
 
-echo "FINISHED!"
-echo "If you would like to chroot into the system please run this:"
-echo "systemd-nspawn --private-users=no -E \"http_proxy=${http_proxy:-}\" -D \"${DEST_CHROOT_DIR}\" /bin/bash"
-echo "or"
-echo "arch-chroot \"${DEST_CHROOT_DIR}\""
+# 7.: misc config
+{
+# 7.1.: set keymap
+{
+echo 'KEYMAP=de-latin1-nodeadkeys'
+echo 'FONT=Lat2-Terminus16'
+} > "$DEST_CHROOT_DIR/etc/vconsole.conf"
+# 7.2.: set locales
+{
+{
+echo 'LANG=en_US.UTF-8'
+echo 'LC_COLLATE=C'
+} > "$DEST_CHROOT_DIR/etc/locale.conf"
+{
+echo 'en_US.UTF-8 UTF-8'
+echo 'de_DE.UTF-8 UTF-8'
+} > "$DEST_CHROOT_DIR/etc/locale.gen"
+{
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/locale-gen
+} | dialog --progressbox "Generating locales" 0 0
+}
+# 7.3.: time stuff
+{
+unlink "${DEST_CHROOT_DIR}/etc/localtime"
+ln -s ../usr/share/zoneinfo/Europe/Berlin "${DEST_CHROOT_DIR}/etc/localtime"
+timedatectl set-local-rtc no
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable systemd-timesyncd.service systemd-time-sync-wait.service
+} | dialog --progressbox "Setting time stuff" 0 0
+# 7.4.: hostname
+{
+echo "$_NEW_HOSTNAME"
+} > "$DEST_CHROOT_DIR/etc/hostname"
+# 7.5.: enable network
+{
+mkdir -p "$DEST_CHROOT_DIR/etc/systemd/network/"
+mkdir -p "$DEST_CHROOT_DIR/etc/iwd"
+{
+echo '[Match]'
+echo 'Type=ether'
+echo ''
+echo '[Network]'
+echo 'DHCP=yes'
+} > "$DEST_CHROOT_DIR/etc/systemd/network/99-all-ethernet-dhcp.network"
+{
+echo '[Match]'
+echo 'Type=wlan'
+echo ''
+echo '[Link]'
+echo 'Unmanaged=yes'
+} > "$DEST_CHROOT_DIR/etc/systemd/network/01-ignore-wireless-interfaces.network"
+{
+echo '[General]'
+echo 'EnableNetworkConfiguration=true'
+echo 'DisableANQP=false'
+} > "$DEST_CHROOT_DIR/etc/iwd/main.conf"
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable iwd.service systemd-networkd.service
+}
+# 7.6.: set root password
+{
+echo "root:$_CRYPT_ROOT_PASSWORD"
+} | chpasswd -R "$DEST_CHROOT_DIR"
+}
+
+
+# 8.: installing and configuring the bootloader
+{
+# 8.1.: install systemd-boot
+{
+systemd-nspawn --bind /dev/disk/by-label/EFI -D "$DEST_CHROOT_DIR" -- /usr/bin/bootctl --no-pager install
+} | dialog --progressbox "Installing systemd-boot into LABEL=EFI" 0 0
+# 8.2.: writing boot loader config
+{
+echo 'default arch'
+echo 'timeout 4'
+echo 'editor  no'
+} > "${DEST_CHROOT_DIR}/boot/loader/loader.conf"
+# 8.3.: writing boot loader entries
+{
+echo 'title Arch Linux'
+echo 'linux /vmlinuz-linux'
+echo 'initrd /amd-ucode.img'
+echo 'initrd /intel-ucode.img'
+echo 'initrd /initramfs-linux.img'
+echo 'options luks.name="PARTLABEL=crypto-root" luks.options=discard,luks root=LABEL=root-btrfs rootflags=subvol=@,rw,discard'
+} > "${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf"
+}
+
+
+# 9.: configuring the initramfs
+{
+# 9.1.: writing config
+{
+echo 'MODULES=()'
+echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat)'
+echo 'FILES=()'
+echo 'HOOKS=(base systemd autodetect sd-encrypt sd-shutdown sd-vconsole modconf block filesystems keyboard fsck)'
+} > /etc/mkinitcpio.conf
+# 9.2.: creating intramfs
+{
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/mkinitcpio -P
+} | dialog --progressbox "Creating the initramfs" 0 0
+}
+
+if dialog --yesno "Your system is ready and can be rebooted. Do you want to reboot?\nIf not, you will be dropped into a root shell." 0 0; then
+    systemctl reboot
