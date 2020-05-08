@@ -316,7 +316,7 @@ echo "options luks.name=${LUKS_UUID}=cryptoroot luks.options=discard,luks root=L
 # 9.1.: writing config
 {
 echo 'MODULES=(vfat btrfs)'
-echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat /usr/bin/btrfs /usr/bin/bash /usr/bin/cryptsetup /usr/bin/bash /usr/bin/vim)'
+echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat /usr/bin/btrfs /usr/bin/bash /usr/bin/cryptsetup /usr/bin/vim)'
 echo 'FILES=()'
 echo 'HOOKS=(systemd autodetect sd-encrypt sd-shutdown sd-vconsole modconf block filesystems keyboard fsck)'
 } > "${DEST_CHROOT_DIR}/etc/mkinitcpio.conf"
