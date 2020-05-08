@@ -187,7 +187,7 @@ swapon "$swapfile"
 declare -a packages_to_install=()
 packages_to_install+=('base' 'linux')
 packages_to_install+=('linux-firmware' 'intel-ucode' 'amd-ucode' 'fwupd')
-packages_to_install+=('btrfs-progs')
+packages_to_install+=('btrfs-progs' 'dosfstools')
 packages_to_install+=('iwd') # better replacement for wpa_supplicant
 packages_to_install+=('sudo' 'polkit')
 packages_to_install+=('vim' 'zsh' 'git' 'man-db' 'man-pages')
