@@ -200,11 +200,11 @@ pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
 {
 for subvol in '@home' '@var_log' '@snapshots' '@swap'; do
     btrfs_mount_point="${subvol#@}"
-    btrfs_mount_point="${btrfs_mount_point/_///}"
+    btrfs_mount_point="${btrfs_mount_point/_//}"
     btrfs_mount_options='noatime,compress=lzo,ssd,discard,commit=120,noauto,x-systemd.automount,x-systemd.idle-timeout=10'
-    printf '/dev/mapper/cryptoroot %s btrfs %s,subvol=%s 0 0\n' "$btrfs_mount_point" "$btrfs_mount_options" "$subvol"
-    printf '/swap/file none swap defaults 0 0\n'
+    printf '/dev/mapper/cryptoroot /%s btrfs %s,subvol=%s 0 0\n' "$btrfs_mount_point" "$btrfs_mount_options" "$subvol"
 done
+printf '/swap/file none swap defaults 0 0\n'
 } | tee "${DEST_CHROOT_DIR}/etc/fstab" | dialog --progressbox "Creating /etc/fstab" 0 0
 
 
