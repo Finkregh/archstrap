@@ -234,7 +234,7 @@ systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/locale-gen
 unlink "${DEST_CHROOT_DIR}/etc/localtime"
 ln -s ../usr/share/zoneinfo/Europe/Berlin "${DEST_CHROOT_DIR}/etc/localtime"
 timedatectl set-local-rtc no
-systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable systemd-timesyncd.service systemd-time-sync-wait.service
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable systemd-timesyncd.service systemd-time-wait-sync.service
 } | dialog --progressbox "Setting time stuff" 0 0
 # 7.4.: hostname
 {
