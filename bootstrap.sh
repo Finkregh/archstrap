@@ -139,21 +139,25 @@ declare -A _BTRFS_IDS=()
 while read -r _ btrfs_id _ _ _ _ _ _ btrfs_name; do
     _BTRFS_IDS["$btrfs_id"]="$btrfs_name"
 done < <(btrfs subvolume list "$DEST_CHROOT_DIR")
-umount "$DEST_CHROOT_DIR"
 
+{
+umount "$DEST_CHROOT_DIR"
 # proper mount all the subvolumes
 for btrfs_id in "${!_BTRFS_IDS[@]}"; do
     btrfs_name="${_BTRFS_IDS[$btrfs_id]}"
     btrfs_mount_point="${btrfs_name#@}"
+    btrfs_mount_point="${btrfs_mount_point/_///}"
     # build up the mount options to not have a line length of 9001
-    btrfs_mount_options='rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120'
+    btrfs_mount_options='noatime,compress=lzo,ssd,discard,commit=120'
     btrfs_mount_options+=",subvolid=${btrfs_id}"
     btrfs_mount_options+=",subvol=/${btrfs_name}"
     btrfs_mount_options+=",subvol=${btrfs_name}"
     mkdir -p "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
-    mount /dev/mapper/cryptoroot -o "${btrfs_mount_options}" "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
+    mount /dev/mapper/cryptoroot -o "${btrfs_mount_options}" "${DEST_CHROOT_DIR}/${btrfs_mount_point}" \
+    | dialog --progressbox "Mounting ${DEST_CHROOT_DIR}/${btrfs_mount_point}" 0 0
 done
-} | dialog --clear --progressbox "Setting up btrfs subvolumes" 0 0
+}
+}
 # 4.2.: EFI stuff
 {
 mkfs.vfat -F32 -n EFI "$DEST_EFI_PART"
