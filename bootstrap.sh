@@ -3,14 +3,16 @@
 set -euo pipefail
 set -x
 
+# 1.: asking stuff
+{
 # shows a dialog (duh) asking for confirmation. It contains a red \Z1 bold \Zb warning. The warning is set back at \Zn.
 # the size is determined automatically (0 0)
 dialog --clear \
-    --colors \
-    --yesno \
-    --defaultno \
-    'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
-    0 0
+  --colors \
+  --yesno \
+  --defaultno \
+  'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
+  0 0
 declare -i _dialog_return="$?"
 if ((_dialog_return != 0)); then
     [[ "$0" == "${BASH_SOURCE[0]}" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
@@ -26,13 +28,14 @@ done < <(lsblk -o TYPE,SIZE,PATH --noheadings)
 # open an additional file descriptor (fd3) to allow usage of dialog inside the subshell and redirecting its output
 exec 3>&1
 DEST_DISK_PATH=$(dialog --clear \
-    --backtitle "Choose a disk to write to" \
-    --title "Choose a disk to write to" \
-    --menu "Available disks" 15 40 4 \
-    "${_DISK_CHOOSE_OPTIONS[@]}" \
-    2>&1 1>&3)
+  --backtitle "Choose a disk to write to" \
+  --title "Choose a disk to write to" \
+  --menu "Available disks" 0 0 0 \
+  "${_DISK_CHOOSE_OPTIONS[@]}" \
+  2>&1 1>&3)
 # close the additional fd
 exec 3>&-
+}
 
 declare -r DEST_DISK_PATH
 declare -r DEST_CHROOT_DIR="/mnt/tmp"
