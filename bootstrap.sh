@@ -269,6 +269,10 @@ systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable iwd.service sy
 {
 echo "root:$_CRYPT_ROOT_PASSWORD"
 } | chpasswd -R "$DEST_CHROOT_DIR"
+# 7.7.: enable cockpit
+{
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable cockpit.socket
+}
 }
 
 
