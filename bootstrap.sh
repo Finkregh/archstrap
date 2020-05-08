@@ -125,6 +125,7 @@ cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") open "$DEST_ROOT_PA
 {
 # 4.1.: btrfs stuff
 {
+{
 # create btrfs filesystem
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
 mount LABEL=root-btrfs "${DEST_CHROOT_DIR}"
@@ -132,7 +133,7 @@ mount LABEL=root-btrfs "${DEST_CHROOT_DIR}"
 for subvol in '@' '@home' '@var_log' '@snapshots' '@swap'; do
     btrfs subvolume create "${DEST_CHROOT_DIR}/${subvol}"
 done
-
+} | dialog --progressbox "Creating btrfs subvolumes" 0 0
 # get btrfs subvol IDs
 declare -A _BTRFS_IDS=()
 while read -r _ btrfs_id _ _ _ _ _ _ btrfs_name; do
