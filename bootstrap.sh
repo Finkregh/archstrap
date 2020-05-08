@@ -63,48 +63,56 @@ sleep 5
 }
 
 
-# setup disk encryption
+# 3.: setup disk encryption
+{
+# 3.1.: ask for encryption password
+{
 declare _passwords_are_the_same='false'
 until [[ "$_passwords_are_the_same" == 'true' ]]; do
-	exec 3>&1
-	_CRYPT_ROOT_PASSWORD=$(dialog \
-		--clear \
-		--passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase." \
-		--insecure \
-		0 0 \
-		2>&1 1>&3)
-	exec 3>&-
-	exec 3>&1
-	_CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
-		--clear \
-		--passwordbox "Please repeat your passphrase." \
-		--insecure \
-		0 0 \
-		2>&1 1>&3)
-	exec 3>&-
-	if [[ "$_CRYPT_ROOT_PASSWORD" == "$_CRYPT_ROOT_PASSWORD_COMPARE" ]]; then
-		_passwords_are_the_same='true'
-	else
-		dialog --clear --msgbox "The entered passphrases don't match. Please try again." 0 0
-	fi
+    exec 3>&1
+    _CRYPT_ROOT_PASSWORD=$(dialog \
+        --clear \
+        --passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase." \
+        --insecure \
+        0 0 \
+        2>&1 1>&3)
+    exec 3>&-
+    exec 3>&1
+    _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
+        --clear \
+        --passwordbox "Please repeat your passphrase." \
+        --insecure \
+        0 0 \
+        2>&1 1>&3)
+    exec 3>&-
+    if [[ "$_CRYPT_ROOT_PASSWORD" == "$_CRYPT_ROOT_PASSWORD_COMPARE" ]]; then
+        _passwords_are_the_same='true'
+    else
+        dialog --clear --msgbox "The entered passphrases don't match. Please try again." 0 0
+    fi
 done
-
+}
+# 3.2.: encrypt disk
+{
 # read passwort from variable provided by dialog
 # argon2i is preferable over pbkdf2 as it also has additional memory and CPU costs instead of just time costs
-# pbkdf-memory is mesured in KiB, we want to use 1GiB of RAM
+# pbkdf-memory is messured in KiB, we want to use 1GiB of RAM
 # pbkdf-parallel defines how many threads are used, but never more than NR(cpus_online)
 # batch-mode just runs the application, no questions asked!
 cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") \
---pbkdf=argon2id \
---pbkdf-memory=$((1024 * 1024)) \
---pbkdf-parallel=4 \
-luksFormat \
---batch-mode \
-"$DEST_ROOT_PART" \
+  --pbkdf=argon2id \
+  --pbkdf-memory=$((1024 * 1024)) \
+  --pbkdf-parallel=4 \
+  luksFormat \
+  --batch-mode \
+  "$DEST_ROOT_PART" \
 | dialog --clear --progressbox "Crypting the root partition ${DEST_ROOT_PART}" 0 0
 
 # open crypto container
 cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") open "$DEST_ROOT_PART" cryptoroot
+} | dialog --clear --progressbox "Setting up decryption at $DEST_ROOT_PART" 0 0
+}
+
 
 echo "[INFO] creating root FS, mounting"
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
