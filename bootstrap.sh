@@ -299,7 +299,7 @@ while IFS='=' read -r property value; do
         LUKS_UUID="$value"
         break
     fi
-done < <(udevadm info --query=property /dev/disk/by-partlabel/crypto-root)
+done < <(udevadm info --query=property "$DEST_ROOT_PART")
 }
 {
 echo 'title Arch Linux'
