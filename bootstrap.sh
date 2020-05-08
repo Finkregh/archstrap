@@ -250,6 +250,8 @@ echo 'Type=ether'
 echo ''
 echo '[Network]'
 echo 'DHCP=yes'
+echo 'LLMNR=yes'
+echo 'MulticastDNS=yes'
 } > "$DEST_CHROOT_DIR/etc/systemd/network/99-all-ethernet-dhcp.network"
 {
 echo '[Match]'
@@ -263,7 +265,7 @@ echo '[General]'
 echo 'EnableNetworkConfiguration=true'
 echo 'DisableANQP=false'
 } > "$DEST_CHROOT_DIR/etc/iwd/main.conf"
-systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable iwd.service systemd-networkd.service
+systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable iwd.service systemd-networkd.service systemd-resolved.service
 }
 # 7.6.: set root password
 {
