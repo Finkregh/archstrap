@@ -10,8 +10,8 @@ set -x
 # shows a dialog (duh) asking for confirmation. It contains a red \Z1 bold \Zb warning. The warning is set back at \Zn.
 # the size is determined automatically (0 0)
 dialog --colors \
-  --yesno \
   --defaultno \
+  --yesno \
   'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
   0 0
 declare -i _dialog_return="$?"
@@ -43,16 +43,16 @@ exec 3>&-
 declare _passwords_are_the_same='false'
 until [[ "$_passwords_are_the_same" == 'true' ]]; do
     exec 3>&1
-    _CRYPT_ROOT_PASSWORD=$(dialog \
-        --passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too." \
+    _CRYPT_ROOT_PASSWORD=$(dialog \ \
         --insecure \
+        --passwordbox "Setting up disk encryption for ${DEST_DISK_PATH}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too."
         0 0 \
         2>&1 1>&3)
     exec 3>&-
     exec 3>&1
-    _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
-        --passwordbox "Please repeat your passphrase." \
+    _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \ \
         --insecure \
+        --passwordbox "Please repeat your passphrase."
         0 0 \
         2>&1 1>&3)
     exec 3>&-
@@ -143,15 +143,12 @@ done < <(btrfs subvolume list "$DEST_CHROOT_DIR")
 {
 umount "$DEST_CHROOT_DIR"
 # proper mount all the subvolumes
-for btrfs_id in "${!_BTRFS_IDS[@]}"; do
-    btrfs_name="${_BTRFS_IDS[$btrfs_id]}"
-    btrfs_mount_point="${btrfs_name#@}"
+for subvol in '@' '@home' '@var_log' '@snapshots' '@swap'; do
+    btrfs_mount_point="${subvol#@}"
     btrfs_mount_point="${btrfs_mount_point/_///}"
     # build up the mount options to not have a line length of 9001
     btrfs_mount_options='noatime,compress=lzo,ssd,discard,commit=120'
-    btrfs_mount_options+=",subvolid=${btrfs_id}"
-    btrfs_mount_options+=",subvol=/${btrfs_name}"
-    btrfs_mount_options+=",subvol=${btrfs_name}"
+    btrfs_mount_options+=",subvol=${subvol}"
     mkdir -p "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
     mount /dev/mapper/cryptoroot -o "${btrfs_mount_options}" "${DEST_CHROOT_DIR}/${btrfs_mount_point}" \
     | dialog --progressbox "Mounting ${DEST_CHROOT_DIR}/${btrfs_mount_point}" 0 0
