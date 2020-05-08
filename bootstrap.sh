@@ -18,7 +18,9 @@ declare -i _dialog_return="$?"
 if ((_dialog_return != 0)); then
     [[ "$0" == "${BASH_SOURCE[0]}" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
 fi
-
+}
+# 1.2.: which disk?
+{
 declare -a _DISK_CHOOSE_OPTIONS=()
 while read -r _disk_type _disk_size _disk_path; do
     if [[ "$_disk_type" == 'disk' ]]; then
@@ -35,6 +37,41 @@ DEST_DISK_PATH=$(dialog --backtitle "Choose a disk to write to" \
   2>&1 1>&3)
 # close the additional fd
 exec 3>&-
+}
+# 1.3.: ask for encryption/root password
+{
+declare _passwords_are_the_same='false'
+until [[ "$_passwords_are_the_same" == 'true' ]]; do
+    exec 3>&1
+    _CRYPT_ROOT_PASSWORD=$(dialog \
+        --passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too." \
+        --insecure \
+        0 0 \
+        2>&1 1>&3)
+    exec 3>&-
+    exec 3>&1
+    _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
+        --passwordbox "Please repeat your passphrase." \
+        --insecure \
+        0 0 \
+        2>&1 1>&3)
+    exec 3>&-
+    if [[ "$_CRYPT_ROOT_PASSWORD" == "$_CRYPT_ROOT_PASSWORD_COMPARE" ]]; then
+        _passwords_are_the_same='true'
+    else
+        dialog --msgbox "The entered passphrases don't match. Please try again." 0 0
+    fi
+done
+}
+# 1.4.: hostname?
+{
+exec 3>&1
+_NEW_HOSTNAME=$(dialog \
+    --inputbox "What should the hostname be?" \
+    0 0 \
+    2>&1 1>&3)
+exec 3>&-
+}
 }
 
 
@@ -59,40 +96,11 @@ sgdisk -n0:0:0 -t0:CA7D7CCB-63ED-4C53-861C-1742536059CC -c 0:crypt-root "${DEST_
 # update partition table
 partprobe
 sleep 5
-} | dialog --clear --progressbox "Formatting disk $DEST_DISK_PATH" 0 0
+} | dialog --progressbox "Formatting disk $DEST_DISK_PATH" 0 0
 }
 
 
 # 3.: setup disk encryption
-{
-# 3.1.: ask for encryption password
-{
-declare _passwords_are_the_same='false'
-until [[ "$_passwords_are_the_same" == 'true' ]]; do
-    exec 3>&1
-    _CRYPT_ROOT_PASSWORD=$(dialog \
-        --clear \
-        --passwordbox "Setting up disk encryption for ${DEST_ROOT_PART}.\n\nPlease enter a proper passphrase." \
-        --insecure \
-        0 0 \
-        2>&1 1>&3)
-    exec 3>&-
-    exec 3>&1
-    _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
-        --clear \
-        --passwordbox "Please repeat your passphrase." \
-        --insecure \
-        0 0 \
-        2>&1 1>&3)
-    exec 3>&-
-    if [[ "$_CRYPT_ROOT_PASSWORD" == "$_CRYPT_ROOT_PASSWORD_COMPARE" ]]; then
-        _passwords_are_the_same='true'
-    else
-        dialog --clear --msgbox "The entered passphrases don't match. Please try again." 0 0
-    fi
-done
-}
-# 3.2.: encrypt disk
 {
 # read passwort from variable provided by dialog
 # argon2i is preferable over pbkdf2 as it also has additional memory and CPU costs instead of just time costs
