@@ -157,11 +157,11 @@ mkdir -p "${DEST_CHROOT_DIR}/boot"
 mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
 } | dialog --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" 0 0
 # 4.3.: swap stuff
+declare -r swapfile="${DEST_CHROOT_DIR}/swap/file"
 {
 # setting up the SWAP "file" in the @swap subvolume
 # the swap will be as big as the RAM
 # https://wiki.archlinux.org/index.php/Swap#Swap_file_creation
-declare -r swapfile="${DEST_CHROOT_DIR}/swap/file"
 truncate -s 0 "$swapfile"
 chattr +C "$swapfile"
 chmod 600 "$swapfile"
