@@ -291,7 +291,7 @@ echo 'linux /vmlinuz-linux'
 echo 'initrd /amd-ucode.img'
 echo 'initrd /intel-ucode.img'
 echo 'initrd /initramfs-linux.img'
-echo 'options luks.name="PARTLABEL=crypto-root" luks.options=discard,luks root=LABEL=root-btrfs rootflags=subvol=@,rw,discard'
+echo 'options luks.name="PARTLABEL=crypto-root"=cryptoroot luks.options=discard,luks root=LABEL=root-btrfs rootflags=subvol=@,rw,discard'
 } > "${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf"
 }
 
@@ -300,10 +300,10 @@ echo 'options luks.name="PARTLABEL=crypto-root" luks.options=discard,luks root=L
 {
 # 9.1.: writing config
 {
-echo 'MODULES=()'
-echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat)'
+echo 'MODULES=(vfat btrfs)'
+echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat /usr/bin/btrfs /usr/bin/bash /usr/bin/cryptsetup /usr/bin/bash /usr/bin/vim)'
 echo 'FILES=()'
-echo 'HOOKS=(base systemd autodetect sd-encrypt sd-shutdown sd-vconsole modconf block filesystems keyboard fsck)'
+echo 'HOOKS=(systemd autodetect sd-encrypt sd-shutdown sd-vconsole modconf block filesystems keyboard fsck)'
 } > /etc/mkinitcpio.conf
 # 9.2.: creating intramfs
 {
