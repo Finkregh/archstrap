@@ -5,10 +5,11 @@ set -x
 
 # 1.: asking stuff
 {
+# 1.1.: really?
+{
 # shows a dialog (duh) asking for confirmation. It contains a red \Z1 bold \Zb warning. The warning is set back at \Zn.
 # the size is determined automatically (0 0)
-dialog --clear \
-  --colors \
+dialog --colors \
   --yesno \
   --defaultno \
   'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
@@ -27,8 +28,7 @@ done < <(lsblk -o TYPE,SIZE,PATH --noheadings)
 
 # open an additional file descriptor (fd3) to allow usage of dialog inside the subshell and redirecting its output
 exec 3>&1
-DEST_DISK_PATH=$(dialog --clear \
-  --backtitle "Choose a disk to write to" \
+DEST_DISK_PATH=$(dialog --backtitle "Choose a disk to write to" \
   --title "Choose a disk to write to" \
   --menu "Available disks" 0 0 0 \
   "${_DISK_CHOOSE_OPTIONS[@]}" \
@@ -106,12 +106,11 @@ cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") \
   luksFormat \
   --batch-mode \
   "$DEST_ROOT_PART" \
-| dialog --clear --progressbox "Crypting the root partition ${DEST_ROOT_PART}" 0 0
+| dialog --progressbox "Crypting the root partition ${DEST_ROOT_PART}" 0 0
 
 # open crypto container
 cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") open "$DEST_ROOT_PART" cryptoroot
-} | dialog --clear --progressbox "Setting up decryption at $DEST_ROOT_PART" 0 0
-}
+} | dialog --progressbox "Setting up decryption at $DEST_ROOT_PART" 0 0
 
 
 # 4.: setup filesystem partitions, subvolumes and swap
@@ -151,7 +150,7 @@ done
 mkfs.vfat -F32 -n EFI "$DEST_EFI_PART"
 mkdir -p "${DEST_CHROOT_DIR}/boot"
 mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
-} | dialog --clear --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" 0 0
+} | dialog --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" 0 0
 # 4.3.: swap stuff
 {
 # setting up the SWAP "file" in the @swap subvolume
@@ -173,7 +172,7 @@ done < /proc/meminfo
 fallocate -l "$((system_mem * 1024))" /swap/file
 mkswap -L swap-file /swap/file
 swapon /swap/file
-} | dialog --clear --progressbox "Formatting and setting up /swap/file" 0 0
+} | dialog --progressbox "Formatting and setting up /swap/file" 0 0
 }
 
 
