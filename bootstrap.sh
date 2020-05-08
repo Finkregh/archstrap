@@ -290,13 +290,24 @@ echo 'editor  no'
 } > "${DEST_CHROOT_DIR}/boot/loader/loader.conf"
 # 8.3.: writing boot loader entries
 {
+{
+declare LUKS_UUID=''
+while IFS='=' read -r property value; do
+    if [[ "$property" == 'ID_FS_UUID' ]]; then
+        LUKS_UUID="$value"
+        break
+    fi
+done < <(udevadm info --query=property /dev/disk/by-partlabel/crypto-root)
+}
+{
 echo 'title Arch Linux'
 echo 'linux /vmlinuz-linux'
 echo 'initrd /amd-ucode.img'
 echo 'initrd /intel-ucode.img'
 echo 'initrd /initramfs-linux.img'
-echo 'options luks.name="PARTLABEL=crypto-root"=cryptoroot luks.options=discard,luks root=LABEL=root-btrfs rootflags=subvol=@,rw,discard'
+echo "options luks.name=${LUKS_UUID}=cryptoroot luks.options=discard,luks root=LABEL=root-btrfs rootflags=subvol=@,rw,discard"
 } > "${DEST_CHROOT_DIR}/boot/loader/entries/arch.conf"
+}
 }
 
 
