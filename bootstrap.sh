@@ -192,7 +192,7 @@ packages_to_install+=('iwd') # better replacement for wpa_supplicant
 packages_to_install+=('sudo' 'polkit')
 packages_to_install+=('vim' 'zsh' 'git' 'man-db' 'man-pages')
 packages_to_install+=('cockpit' 'cockpit-podman' 'cockpit-machines') # cockpit is a fancy web base for system administration
-pacstrap -c "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
+pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
 } | dialog --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
 
 
