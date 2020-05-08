@@ -161,10 +161,11 @@ mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
 # setting up the SWAP "file" in the @swap subvolume
 # the swap will be as big as the RAM
 # https://wiki.archlinux.org/index.php/Swap#Swap_file_creation
-truncate -s 0 /swap/file
-chattr +C /swap/file
-chmod 600 /swap/file
-btrfs property set /swap/file compression none
+declare -r swapfile="${DEST_CHROOT_DIR}/swap/file"
+truncate -s 0 "$swapfile"
+chattr +C "$swapfile"
+chmod 600 "$swapfile"
+btrfs property set "$swapfile" compression none
 declare -i system_mem
 # /proc/meminfo contains the value in kB
 while read -r mem_option mem_value _; do
@@ -174,10 +175,10 @@ while read -r mem_option mem_value _; do
     fi
 done < /proc/meminfo
 # fallocate uses Bytes for the size
-fallocate -l "$((system_mem * 1024))" /swap/file
-mkswap -L swap-file /swap/file
-swapon /swap/file
-} | dialog --progressbox "Formatting and setting up /swap/file" 0 0
+fallocate -l "$((system_mem * 1024))" "$swapfile"
+mkswap -L swap-file "$swapfile"
+swapon "$swapfile"
+} | dialog --progressbox "Formatting and setting up $swapfile" 0 0
 }
 
 
