@@ -37,12 +37,17 @@ DEST_DISK_PATH=$(dialog --clear \
 exec 3>&-
 }
 
+
+# 2.: partition disk
+{
 declare -r DEST_DISK_PATH
 declare -r DEST_CHROOT_DIR="/mnt/tmp"
+# use the fancy names from the sgdisk -c part
+declare -r DEST_EFI_PART='/dev/disk/by-partlabel/efi'
+declare -r DEST_ROOT_PART='/dev/disk/by-partlabel/crypt-root'
 
+{
 mkdir -p "${DEST_CHROOT_DIR}"
-
-# partition disk
 # clear partition table
 sgdisk --zap-all "${DEST_DISK_PATH}"
 # use relativ partition numbers, not hardcoded ones
@@ -54,14 +59,8 @@ sgdisk -n0:0:0 -t0:CA7D7CCB-63ED-4C53-861C-1742536059CC -c 0:crypt-root "${DEST_
 # update partition table
 partprobe
 sleep 5
-
-# use the fancy names from the sgdisk -c part
-declare -r DEST_EFI_PART='/dev/disk/by-partlabel/efi'
-declare -r DEST_ROOT_PART='/dev/disk/by-partlabel/crypt-root'
-
-mkfs.vfat -F32 -n EFI "$DEST_EFI_PART" \
-| dialog --clear --progressbox "Formatting the EFI partition ${DEST_EFI_PART}" 0 0
-
+} | dialog --clear --progressbox "Formatting disk $DEST_DISK_PATH" 0 0
+}
 
 
 # setup disk encryption
