@@ -304,7 +304,7 @@ echo 'MODULES=(vfat btrfs)'
 echo 'BINARIES=(/usr/bin/fsck.btrfs /usr/bin/fsck.fat /usr/bin/btrfs /usr/bin/bash /usr/bin/cryptsetup /usr/bin/bash /usr/bin/vim)'
 echo 'FILES=()'
 echo 'HOOKS=(systemd autodetect sd-encrypt sd-shutdown sd-vconsole modconf block filesystems keyboard fsck)'
-} > /etc/mkinitcpio.conf
+} > "${DEST_CHROOT_DIR}/etc/mkinitcpio.conf"
 # 9.2.: creating intramfs
 {
 systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/mkinitcpio -P
