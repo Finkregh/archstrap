@@ -114,43 +114,82 @@ cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") open "$DEST_ROOT_PA
 }
 
 
-echo "[INFO] creating root FS, mounting"
+# 4.: setup filesystem partitions, subvolumes and swap
+{
+# 4.1.: btrfs stuff
+{
+# create btrfs filesystem
 mkfs.btrfs -L root-btrfs /dev/mapper/cryptoroot
-mount /dev/mapper/cryptoroot "${DEST_CHROOT_DIR}"
-btrfs subvolume create "${DEST_CHROOT_DIR}/@"
-btrfs subvolume create "${DEST_CHROOT_DIR}/@home"
-btrfs subvolume create "${DEST_CHROOT_DIR}/@var_log"
-btrfs subvolume create "${DEST_CHROOT_DIR}/@snapshots"
+mount LABEL=root-btrfs "${DEST_CHROOT_DIR}"
+# create btrfs subvolumes
+for subvol in '@' '@home' '@var_log' '@snapshots' '@swap'; do
+    btrfs subvolume create "${DEST_CHROOT_DIR}/${subvol}"
+done
+
 # get btrfs subvol IDs
-_BTRFS_ID_ROOT=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @$" | awk '{ print $2 }')
-_BTRFS_ID_HOME=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @home$" | awk '{ print $2 }')
-_BTRFS_ID_VARLOG=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @var_log$" | awk '{print $2 }')
-_BTRFS_ID_SNAPSHOTS=$(btrfs subvol list ${DEST_CHROOT_DIR} | grep -E "path @snapshots$" | awk '{ print $2 }')
-umount /dev/mapper/cryptoroot
-mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_ROOT},subvol=/@,subvol=@" "${DEST_CHROOT_DIR}"
-mkdir -p "${DEST_CHROOT_DIR}/home"
-mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_HOME},subvol=/@home,subvol=@home" "${DEST_CHROOT_DIR}/home"
-mkdir -p "${DEST_CHROOT_DIR}/var/log"
-mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_VARLOG},subvol=/@var_log,subvol=@var_log" "${DEST_CHROOT_DIR}/var/log"
-mkdir -p "${DEST_CHROOT_DIR}/.snapshots"
-mount /dev/mapper/cryptoroot -o "rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120,subvolid=${_BTRFS_ID_SNAPSHOTS},subvol=/@snapshots,subvol=@snapshots" "${DEST_CHROOT_DIR}/.snapshots"
-echo "[INFO] mounting EFI"
+declare -A _BTRFS_IDS=()
+while read -r _ btrfs_id _ _ _ _ _ _ btrfs_name; do
+    _BTRFS_IDS["$btrfs_id"]="$btrfs_name"
+done < <(btrfs subvolume list "$DEST_CHROOT_DIR")
+umount "$DEST_CHROOT_DIR"
+
+# proper mount all the subvolumes
+for btrfs_id in "${!_BTRFS_IDS[@]}"; do
+    btrfs_name="${_BTRFS_IDS[$btrfs_id]}"
+    btrfs_mount_point="${btrfs_name#@}"
+    # build up the mount options to not have a line length of 9001
+    btrfs_mount_options='rw,noatime,compress=lzo,ssd,discard,space_cache,commit=120'
+    btrfs_mount_options+=",subvolid=${btrfs_id}"
+    btrfs_mount_options+=",subvol=/${btrfs_name}"
+    btrfs_mount_options+=",subvol=${btrfs_name}"
+    mkdir -p "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
+    mount /dev/mapper/cryptoroot -o "${btrfs_mount_options}" "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
+done
+} | dialog --clear --progressbox "Setting up btrfs subvolumes" 0 0
+# 4.2.: EFI stuff
+{
+mkfs.vfat -F32 -n EFI "$DEST_EFI_PART"
 mkdir -p "${DEST_CHROOT_DIR}/boot"
 mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
+} | dialog --clear --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" 0 0
+# 4.3.: swap stuff
+{
+# setting up the SWAP "file" in the @swap subvolume
+# the swap will be as big as the RAM
+# https://wiki.archlinux.org/index.php/Swap#Swap_file_creation
+truncate -s 0 /swap/file
+chattr +C /swap/file
+chmod 600 /swap/file
+btrfs property set /swap/file compression none
+declare -i system_mem
+# /proc/meminfo contains the value in kB
+while read -r mem_option mem_value _; do
+    if [[ "$mem_option" == 'MemTotal:' ]]; then
+        system_mem="$mem_value"
+        break
+    fi
+done < /proc/meminfo
+# fallocate uses Bytes for the size
+fallocate -l "$((system_mem * 1024))" /swap/file
+mkswap -L swap-file /swap/file
+swapon /swap/file
+} | dialog --clear --progressbox "Formatting and setting up /swap/file" 0 0
+}
 
-echo "[DEBUG] showing dir content, mount, df"
-ls -la "${DEST_CHROOT_DIR}"
-mount
-df -h
 
-echo "[INFO] installing base system"
-pacstrap "${DEST_CHROOT_DIR}" linux linux-firmware base base-devel \
-    efibootmgr intel-ucode amd-ucode \
-    btrfs-progs \
-    dhcpcd netctl \
-    vim ansible zsh git sudo wpa_supplicant \
-    man-db man-pages \
-    dialog
+# 5.: install packages into new system
+{
+declare -a packages_to_install=()
+packages_to_install+=('base' 'linux')
+packages_to_install+=('linux-firmware' 'intel-ucode' 'amd-ucode' 'fwupd')
+packages_to_install+=('btrfs-progs')
+packages_to_install+=('iwd') # better replacement for wpa_supplicant
+packages_to_install+=('sudo' 'polkit')
+packages_to_install+=('vim' 'zsh' 'git' 'man-db' 'man-pages')
+packages_to_install+=('cockpit' 'cockpit-podman' 'cockpit-machines') # cockpit is a fancy web base for system administration
+pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
+} | dialog --clear --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
+
 
 echo "[INFO] generating fstab"
 genfstab -pU "${DEST_CHROOT_DIR}" | tee -a "${DEST_CHROOT_DIR}/etc/fstab"
