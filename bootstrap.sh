@@ -43,9 +43,9 @@ exec 3>&-
 declare _passwords_are_the_same='false'
 until [[ "$_passwords_are_the_same" == 'true' ]]; do
     exec 3>&1
-    _CRYPT_ROOT_PASSWORD=$(dialog \ \
+    _CRYPT_ROOT_PASSWORD=$(dialog \
         --insecure \
-        --passwordbox "Setting up disk encryption for ${DEST_DISK_PATH}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too."
+        --passwordbox "Setting up disk encryption for ${DEST_DISK_PATH}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too." \
         0 0 \
         2>&1 1>&3)
     exec 3>&-
@@ -134,11 +134,6 @@ for subvol in '@' '@home' '@var_log' '@snapshots' '@swap'; do
     btrfs subvolume create "${DEST_CHROOT_DIR}/${subvol}"
 done
 } | dialog --progressbox "Creating btrfs subvolumes" 0 0
-# get btrfs subvol IDs
-declare -A _BTRFS_IDS=()
-while read -r _ btrfs_id _ _ _ _ _ _ btrfs_name; do
-    _BTRFS_IDS["$btrfs_id"]="$btrfs_name"
-done < <(btrfs subvolume list "$DEST_CHROOT_DIR")
 
 {
 umount "$DEST_CHROOT_DIR"
@@ -317,3 +312,4 @@ systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/mkinitcpio -P
 
 if dialog --yesno "Your system is ready and can be rebooted. Do you want to reboot?\nIf not, you will be dropped into a root shell." 0 0; then
     systemctl reboot
+fi
