@@ -181,7 +181,7 @@ set -x
 # 5.: install packages into new system
 {
   declare -a packages_to_install=()
-  packages_to_install+=('base' 'linux')
+  packages_to_install+=('base' 'base-devel' 'linux')
   packages_to_install+=('linux-firmware' 'intel-ucode' 'amd-ucode' 'fwupd')
   packages_to_install+=('btrfs-progs' 'dosfstools')
   packages_to_install+=('iwd') # better replacement for wpa_supplicant
