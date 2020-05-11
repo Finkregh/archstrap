@@ -187,6 +187,7 @@ set -x
   packages_to_install+=('iwd') # better replacement for wpa_supplicant
   packages_to_install+=('sudo' 'polkit')
   packages_to_install+=('vim' 'zsh' 'git' 'man-db' 'man-pages')
+  packages_to_install+=('pacman-contrib')
   packages_to_install+=('cockpit' 'cockpit-podman' 'cockpit-machines') # cockpit is a fancy web base for system administration
   pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
 } | dialog --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
@@ -318,6 +319,88 @@ set -x
   {
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/mkinitcpio -P
   } | dialog --progressbox "Creating the initramfs" 0 0
+}
+
+# 10.: various config
+{
+  # 9.1.: pacman mirrorlist
+  {
+    # only old, "known" mirrors chosen
+    echo '
+    ## Generated on 2020-05-02
+#Server = http://mirror.23media.com/archlinux/$repo/os/$arch
+#Server = https://mirror.23media.com/archlinux/$repo/os/$arch
+#Server = https://appuals.com/archlinux/$repo/os/$arch
+#Server = http://artfiles.org/archlinux.org/$repo/os/$arch
+#Server = https://mirror.bethselamin.de/$repo/os/$arch
+#Server = http://mirror.chaoticum.net/arch/$repo/os/$arch
+#Server = https://mirror.chaoticum.net/arch/$repo/os/$arch
+#Server = http://mirror.checkdomain.de/archlinux/$repo/os/$arch
+#Server = https://mirror.checkdomain.de/archlinux/$repo/os/$arch
+#Server = http://mirror.f4st.host/archlinux/$repo/os/$arch
+#Server = https://mirror.f4st.host/archlinux/$repo/os/$arch
+Server = http://ftp.fau.de/archlinux/$repo/os/$arch
+Server = https://ftp.fau.de/archlinux/$repo/os/$arch
+Server = https://dist-mirror.fem.tu-ilmenau.de/archlinux/$repo/os/$arch
+Server = http://ftp.gwdg.de/pub/linux/archlinux/$repo/os/$arch
+#Server = http://archlinux.honkgong.info/$repo/os/$arch
+Server = http://ftp.hosteurope.de/mirror/ftp.archlinux.org/$repo/os/$arch
+Server = http://ftp-stud.hs-esslingen.de/pub/Mirrors/archlinux/$repo/os/$arch
+#Server = http://archlinux.mirror.iphh.net/$repo/os/$arch
+#Server = http://arch.jensgutermuth.de/$repo/os/$arch
+#Server = https://arch.jensgutermuth.de/$repo/os/$arch
+#Server = http://mirror.fra10.de.leaseweb.net/archlinux/$repo/os/$arch
+#Server = https://mirror.fra10.de.leaseweb.net/archlinux/$repo/os/$arch
+#Server = http://mirror.metalgamer.eu/archlinux/$repo/os/$arch
+#Server = https://mirror.metalgamer.eu/archlinux/$repo/os/$arch
+#Server = http://mirror.mikrogravitation.org/archlinux/$repo/os/$arch
+#Server = https://mirror.mikrogravitation.org/archlinux/$repo/os/$arch
+#Server = https://mirror.pkgbuild.com/$repo/os/$arch
+Server = http://mirrors.n-ix.net/archlinux/$repo/os/$arch
+Server = https://mirrors.n-ix.net/archlinux/$repo/os/$arch
+Server = http://mirror.netcologne.de/archlinux/$repo/os/$arch
+Server = https://mirror.netcologne.de/archlinux/$repo/os/$arch
+#Server = http://mirrors.niyawe.de/archlinux/$repo/os/$arch
+#Server = https://mirrors.niyawe.de/archlinux/$repo/os/$arch
+#Server = http://mirror.orbit-os.com/archlinux/$repo/os/$arch
+#Server = https://mirror.orbit-os.com/archlinux/$repo/os/$arch
+#Server = http://packages.oth-regensburg.de/archlinux/$repo/os/$arch
+#Server = https://packages.oth-regensburg.de/archlinux/$repo/os/$arch
+Server = http://ftp.halifax.rwth-aachen.de/archlinux/$repo/os/$arch
+Server = https://ftp.halifax.rwth-aachen.de/archlinux/$repo/os/$arch
+#Server = http://linux.rz.rub.de/archlinux/$repo/os/$arch
+Server = http://mirror.selfnet.de/archlinux/$repo/os/$arch
+Server = https://mirror.selfnet.de/archlinux/$repo/os/$arch
+#Server = http://archlinux.thaller.ws/$repo/os/$arch
+#Server = https://archlinux.thaller.ws/$repo/os/$arch
+Server = http://ftp.tu-chemnitz.de/pub/linux/archlinux/$repo/os/$arch
+#Server = http://mirror.ubrco.de/archlinux/$repo/os/$arch
+#Server = https://mirror.ubrco.de/archlinux/$repo/os/$arch
+Server = http://ftp.uni-kl.de/pub/linux/archlinux/$repo/os/$arch
+#Server = http://mirror.united-gameserver.de/archlinux/$repo/os/$arch
+#Server = http://ftp.wrz.de/pub/archlinux/$repo/os/$arch
+#Server = https://ftp.wrz.de/pub/archlinux/$repo/os/$arch
+#Server = http://mirror.wtnet.de/arch/$repo/os/$arch
+#Server = https://mirror.wtnet.de/arch/$repo/os/$arch
+    ' >"$DEST_CHROOT_DIR/etc/pacman.d/mirrorlist-de-curated"
+    systemd-nspawn -D "$DEST_CHROOT_DIR" -- rankmirrors -n 10 /etc/pacman.d/mirrorlist-de-curated >"$DEST_CHROOT_DIR/etc/pacman.d/mirrorlist"
+  } | dialog --progressbox "Creating ranked pacman mirrorlist" 0 0
+
+  # 10.2.: figure out and install gfx drivers
+  {
+    declare -r _gfxidentifier="$(lspci | grep -e VGA -e 3D)"
+    case "$_gfxidentifier" in
+    *\ Intel\ *) pacstrap $DEST_CHROOT_DIR xf86-video-intel ;;
+    *\ NVIDIA\ *) pacstrap $DEST_CHROOT_DIR xf86-video-nouveau ;;
+    *\ AMD\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
+    *\ ATI\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
+    esac
+   # 10.3.: install DM
+  {
+    pacstrap $DEST_CHROOT_DIR lightdm
+    systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable lightdm.service
+    # FIXME config, theme
+  } | dialog --progressbox "Installing display manager lightdm" 0 0
 }
 
 if dialog --yesno "Your system is ready and can be rebooted. Do you want to reboot?\nIf not, you will be dropped into a root shell." 0 0; then
