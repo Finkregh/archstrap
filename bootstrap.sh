@@ -3,6 +3,11 @@
 set -euo pipefail
 set -x
 
+_termlines=$(tput lines)
+_termwidth=$(tput cols)
+declare -ri _termlines=$((_termlines - 10))
+declare -ri _termwidth=$((_termwidth - 10))
+
 # 1.: asking stuff
 {
   # 1.1.: really?
@@ -13,7 +18,7 @@ set -x
       --defaultno \
       --yesno \
       'Starting here will be dragons! Be sure to have a backup or do not care about your data!:\n\Z1\ZbExisting partitions will be removed!\Zn\n\nDo you want to continue?' \
-      0 0
+      8 ${_termwidth}
     declare -i _dialog_return="$?"
     if ((_dialog_return != 0)); then
       [[ "$0" == "${BASH_SOURCE[0]}" ]] && exit 1 || return 1 # handle exits from shell or function but don't exit interactive shell
@@ -32,7 +37,7 @@ set -x
     exec 3>&1
     DEST_DISK_PATH=$(dialog --backtitle "Choose a disk to write to" \
       --title "Choose a disk to write to" \
-      --menu "Available disks" 0 0 0 \
+      --menu "Available disks" 10 ${_termwidth} 0 \
       "${_DISK_CHOOSE_OPTIONS[@]}" \
       2>&1 1>&3)
     # close the additional fd
@@ -46,20 +51,20 @@ set -x
       _CRYPT_ROOT_PASSWORD=$(dialog \
         --insecure \
         --passwordbox "Setting up disk encryption for ${DEST_DISK_PATH}.\n\nPlease enter a proper passphrase.\nThis password will be the initial root password, too." \
-        0 0 \
+        11 ${_termwidth} \
         2>&1 1>&3)
       exec 3>&-
       exec 3>&1
       _CRYPT_ROOT_PASSWORD_COMPARE=$(dialog \
         --insecure \
         --passwordbox "Please repeat your passphrase." \
-        0 0 \
+        11 ${_termwidth} \
         2>&1 1>&3)
       exec 3>&-
       if [[ "$_CRYPT_ROOT_PASSWORD" == "$_CRYPT_ROOT_PASSWORD_COMPARE" ]]; then
         _passwords_are_the_same='true'
       else
-        dialog --msgbox "The entered passphrases don't match. Please try again." 0 0
+        dialog --msgbox "The entered passphrases don't match. Please try again." 11 ${_termwidth}
       fi
     done
   }
@@ -68,7 +73,7 @@ set -x
     exec 3>&1
     _NEW_HOSTNAME=$(dialog \
       --inputbox "What should the hostname be?" \
-      0 0 \
+      11 ${_termwidth} \
       2>&1 1>&3)
     exec 3>&-
   }
@@ -95,7 +100,7 @@ set -x
     # update partition table
     partprobe
     sleep 5
-  } | dialog --progressbox "Formatting disk $DEST_DISK_PATH" 0 0
+  } | dialog --progressbox "Formatting disk $DEST_DISK_PATH" ${_termlines} ${_termwidth}
 }
 
 # 3.: setup disk encryption
@@ -112,11 +117,11 @@ set -x
     luksFormat \
     --batch-mode \
     "$DEST_ROOT_PART" |
-    dialog --progressbox "Crypting the root partition ${DEST_ROOT_PART}" 0 0
+    dialog --progressbox "Crypting the root partition ${DEST_ROOT_PART}" ${_termlines} ${_termwidth}
 
   # open crypto container
   cryptsetup --key-file <(printf '%s' "$_CRYPT_ROOT_PASSWORD") open "$DEST_ROOT_PART" cryptoroot
-} | dialog --progressbox "Setting up decryption at $DEST_ROOT_PART" 0 0
+} | dialog --progressbox "Setting up decryption at $DEST_ROOT_PART" ${_termlines} ${_termwidth}
 
 # 4.: setup filesystem partitions, subvolumes and swap
 {
@@ -130,7 +135,7 @@ set -x
       for subvol in '@' '@home' '@var_log' '@snapshots' '@swap'; do
         btrfs subvolume create "${DEST_CHROOT_DIR}/${subvol}"
       done
-    } | dialog --progressbox "Creating btrfs subvolumes" 0 0
+    } | dialog --progressbox "Creating btrfs subvolumes" ${_termlines} ${_termwidth}
 
     {
       umount "$DEST_CHROOT_DIR"
@@ -143,7 +148,7 @@ set -x
         btrfs_mount_options+=",subvol=${subvol}"
         mkdir -p "${DEST_CHROOT_DIR}/${btrfs_mount_point}"
         mount /dev/mapper/cryptoroot -o "${btrfs_mount_options}" "${DEST_CHROOT_DIR}/${btrfs_mount_point}" |
-          dialog --progressbox "Mounting ${DEST_CHROOT_DIR}/${btrfs_mount_point}" 0 0
+          dialog --progressbox "Mounting ${DEST_CHROOT_DIR}/${btrfs_mount_point}" ${_termlines} ${_termwidth}
       done
     }
   }
@@ -152,7 +157,7 @@ set -x
     mkfs.vfat -F32 -n EFI "$DEST_EFI_PART"
     mkdir -p "${DEST_CHROOT_DIR}/boot"
     mount "$DEST_EFI_PART" "${DEST_CHROOT_DIR}/boot"
-  } | dialog --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" 0 0
+  } | dialog --progressbox "Formatting and mounting the EFI partition ${DEST_EFI_PART}" ${_termlines} ${_termwidth}
   # 4.3.: swap stuff
   declare -r swapfile="${DEST_CHROOT_DIR}/swap/file"
   {
@@ -175,7 +180,7 @@ set -x
     fallocate -l "$((system_mem * 1024))" "$swapfile"
     mkswap -L swap-file "$swapfile"
     swapon "$swapfile"
-  } | dialog --progressbox "Formatting and setting up $swapfile" 0 0
+  } | dialog --progressbox "Formatting and setting up $swapfile" ${_termlines} ${_termwidth}
 }
 
 # 5.: install packages into new system
@@ -190,7 +195,7 @@ set -x
   packages_to_install+=('pacman-contrib')
   packages_to_install+=('cockpit' 'cockpit-podman' 'cockpit-machines') # cockpit is a fancy web base for system administration
   pacstrap "${DEST_CHROOT_DIR}" "${packages_to_install[@]}"
-} | dialog --progressbox "Installing packages into $DEST_CHROOT_DIR" 0 0
+} | dialog --progressbox "Installing packages into $DEST_CHROOT_DIR" ${_termlines} ${_termwidth}
 
 # 6.: create fstab
 {
@@ -201,7 +206,7 @@ set -x
     printf '/dev/mapper/cryptoroot /%s btrfs %s,subvol=%s 0 0\n' "$btrfs_mount_point" "$btrfs_mount_options" "$subvol"
   done
   printf '/swap/file none swap defaults 0 0\n'
-} | tee "${DEST_CHROOT_DIR}/etc/fstab" | dialog --progressbox "Creating /etc/fstab" 0 0
+} | tee "${DEST_CHROOT_DIR}/etc/fstab" | dialog --progressbox "Creating /etc/fstab" ${_termlines} ${_termwidth}
 
 # 7.: misc config
 {
@@ -222,7 +227,7 @@ set -x
     } >"$DEST_CHROOT_DIR/etc/locale.gen"
     {
       systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/locale-gen
-    } | dialog --progressbox "Generating locales" 0 0
+    } | dialog --progressbox "Generating locales" ${_termlines} ${_termwidth}
   }
   # 7.3.: time stuff
   {
@@ -230,7 +235,7 @@ set -x
     ln -s ../usr/share/zoneinfo/Europe/Berlin "${DEST_CHROOT_DIR}/etc/localtime"
     timedatectl set-local-rtc no
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable systemd-timesyncd.service systemd-time-wait-sync.service
-  } | dialog --progressbox "Setting time stuff" 0 0
+  } | dialog --progressbox "Setting time stuff" ${_termlines} ${_termwidth}
   # 7.4.: hostname
   {
     echo "$_NEW_HOSTNAME"
@@ -277,7 +282,7 @@ set -x
   # 8.1.: install systemd-boot
   {
     systemd-nspawn --bind /dev/disk/by-label/EFI -D "$DEST_CHROOT_DIR" -- /usr/bin/bootctl --no-pager install
-  } | dialog --progressbox "Installing systemd-boot into LABEL=EFI" 0 0
+  } | dialog --progressbox "Installing systemd-boot into LABEL=EFI" ${_termlines} ${_termwidth}
   # 8.2.: writing boot loader config
   {
     echo 'default arch'
@@ -318,7 +323,7 @@ set -x
   # 9.2.: creating intramfs
   {
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/mkinitcpio -P
-  } | dialog --progressbox "Creating the initramfs" 0 0
+  } | dialog --progressbox "Creating the initramfs" ${_termlines} ${_termwidth}
 }
 
 # 10.: various config
@@ -384,25 +389,27 @@ Server = http://ftp.uni-kl.de/pub/linux/archlinux/$repo/os/$arch
 #Server = https://mirror.wtnet.de/arch/$repo/os/$arch
     ' >"$DEST_CHROOT_DIR/etc/pacman.d/mirrorlist-de-curated"
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- rankmirrors -n 10 /etc/pacman.d/mirrorlist-de-curated >"$DEST_CHROOT_DIR/etc/pacman.d/mirrorlist"
-  } | dialog --progressbox "Creating ranked pacman mirrorlist" 0 0
+  } | dialog --progressbox "Creating ranked pacman mirrorlist" ${_termlines} ${_termwidth}
 
   # 10.2.: figure out and install gfx drivers
   {
-    declare -r _gfxidentifier="$(lspci | grep -e VGA -e 3D)"
+    _gfxidentifier="$(lspci | grep -e VGA -e 3D)"
+    declare -r _gfxidentifier
     case "$_gfxidentifier" in
     *\ Intel\ *) pacstrap $DEST_CHROOT_DIR xf86-video-intel ;;
     *\ NVIDIA\ *) pacstrap $DEST_CHROOT_DIR xf86-video-nouveau ;;
     *\ AMD\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
     *\ ATI\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
     esac
-   # 10.3.: install DM
+  } | dialog --progressbox "Installing GFX drivers" ${_termlines} ${_termwidth}
+  # 10.3.: install DM
   {
     pacstrap $DEST_CHROOT_DIR lightdm
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable lightdm.service
     # FIXME config, theme
-  } | dialog --progressbox "Installing display manager lightdm" 0 0
+  } | dialog --progressbox "Installing display manager lightdm" ${_termlines} ${_termwidth}
 }
 
-if dialog --yesno "Your system is ready and can be rebooted. Do you want to reboot?\nIf not, you will be dropped into a root shell." 0 0; then
+if dialog --yesno "Your system is ready and can be rebooted. Do you want to reboot?\nIf not, you will be dropped into a root shell." ${_termlines} ${_termwidth}; then
   systemctl reboot
 fi
