@@ -8,6 +8,12 @@ _termwidth=$(tput cols)
 declare -ri _termlines=$((_termlines - 10))
 declare -ri _termwidth=$((_termwidth - 10))
 
+# mount host os' pacman cache
+# shellcheck disable=SC2010
+if ls -la /sys/class/block | grep -q virtio; then
+  mount -t 9p -o trans=virtio,version=9p2000.L host0 /var/cache/pacman/pkg || true
+fi
+
 # 1.: asking stuff
 {
   # 1.1.: really?
