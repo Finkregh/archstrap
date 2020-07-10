@@ -402,7 +402,7 @@ Server = http://ftp.uni-kl.de/pub/linux/archlinux/$repo/os/$arch
     _gfxidentifier="$(lspci | grep -e VGA -e 3D)"
     declare -r _gfxidentifier
     case "$_gfxidentifier" in
-    *\ Intel\ *) pacstrap $DEST_CHROOT_DIR xf86-video-intel ;;
+    #*\ Intel\ *) pacstrap $DEST_CHROOT_DIR xf86-video-intel ;; # disabled following https://github.com/Finkregh/archstrap/pull/10#discussion_r427403432
     *\ NVIDIA\ *) pacstrap $DEST_CHROOT_DIR xf86-video-nouveau ;;
     *\ AMD\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
     *\ ATI\ *) echo "please install 'xf86-video-amdgpu' or 'xf86-video-ati', see <https://wiki.archlinux.org/index.php/Xorg#Driver_installation>" ;;
