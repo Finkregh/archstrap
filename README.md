@@ -1,3 +1,23 @@
+# Archlinux install script
+
+## usage
+
+General setup:
+* generate ISO with bootstrap script; should only be needed once
+  * `./create-iso.sh`
+  * otherwise use normal ISO and download script manually
+* boot ISO in VM/PC
+  * to start a qemu VM run `./start-vm.sh`
+* enable network in running ISO (should happen automagically with ethernet)
+* run `./get-bootstrap.sh` in the VM to download files
+  * this will fetch files from github, or via `./get-bootstrap.sh local` from the
+    IPv4 default gateway
+
+## chat
+
+![deltachat invite](deltachat-invite.jpg)
+
+
 # arch installer designdoc
 
 ## non-goals (currently)
@@ -117,19 +137,4 @@
     * features like ZFS
 * mkosi
 
-### chat
 
-![deltachat invite](deltachat-invite.jpg)
-
-### usage
-
-General setup:
-* generate ISO with bootstrap script; should only be needed once
-  * `./create-iso.sh`
-  * otherwise use normal ISO and download script manually
-* boot ISO in VM/PC
-  * to start a qemu VM run `./start-vm.sh`
-* enable network in running ISO (should happen automagically with ethernet)
-* run `./get-bootstrap.sh` in the VM to download files
-  * this will fetch files from github, or via `./get-bootstrap.sh local` from the
-    IPv4 default gateway
