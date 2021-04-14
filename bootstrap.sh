@@ -410,7 +410,7 @@ Server = http://ftp.uni-kl.de/pub/linux/archlinux/$repo/os/$arch
   } | dialog --progressbox "Installing GFX drivers" ${_termlines} ${_termwidth}
   # 10.3.: install DM
   {
-    pacstrap $DEST_CHROOT_DIR lightdm
+    pacstrap $DEST_CHROOT_DIR lightdm lightdm-gtk-greeter
     systemd-nspawn -D "$DEST_CHROOT_DIR" -- /usr/bin/systemctl enable lightdm.service
     # FIXME config, theme
   } | dialog --progressbox "Installing display manager lightdm" ${_termlines} ${_termwidth}
