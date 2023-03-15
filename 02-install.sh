@@ -295,13 +295,13 @@ else
 fi
 
 
-arch-chroot /mnt /bin/bash -xe <<EOF
 
-echo "[INFO] set clock to UTC"
-timedatectl set-local-rtc 0
-timedatectl set-ntp true
-hwclock --systohc --utc
-EOF
+# FIXME needs to happen after boot
+#echo "[INFO] set clock to UTC"
+#systemd-nspawn -D /mnt -- timedatectl set-local-rtc 0
+#systemd-nspawn -D /mnt -- timedatectl set-ntp true
+#systemd-nspawn -D /mnt -- hwclock --systohc --utc
+
 
 
   packages_to_install+=('linux-firmware' 'intel-ucode' 'amd-ucode' 'fwupd')
