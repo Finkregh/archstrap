@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # bsed on <https://github.com/eoli3n/arch-config>
 
-# run this first!
-# curl -s https://raw.githubusercontent.com/eoli3n/archiso-zfs/master/init | bash
+curl -s https://raw.githubusercontent.com/eoli3n/archiso-zfs/master/init | bash
 
 set -e
 
